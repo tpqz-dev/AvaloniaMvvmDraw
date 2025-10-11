@@ -4,13 +4,14 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Serilog;
 
+
 namespace AvaloniaMvvmDraw;
 
 public partial class AboutSmallWindow : Window
 {
-    public AboutSmallWindow()
+    public AboutSmallWindow() 
     {
-        InitializeComponent();
+        AvaloniaXamlLoader.Load(this);
     }
 
     private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

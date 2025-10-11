@@ -13,6 +13,5 @@
         <MenuItem Header="_About" Click="AboutMenu_Click"/>
       </MenuItem>
     </Menu>
-    <!-- Autres éléments de l'interface ici -->
   </DockPanel>
 </Window>
