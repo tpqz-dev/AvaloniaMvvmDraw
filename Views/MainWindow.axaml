@@ -7,7 +7,7 @@
       <MenuItem Header="_File">
         <MenuItem Header="_Load"/>
         <MenuItem Header="_Save"/>
-        <MenuItem Header="E_xit"/>
+        <MenuItem Header="E_xit" Click="ExitMenu_Click"/>
       </MenuItem>
       <MenuItem Header="_Help">
         <MenuItem Header="_About" Click="AboutMenu_Click"/>

@@ -17,5 +17,11 @@ namespace AvaloniaMvvmDraw.Views
             await aboutWindow.ShowDialog(this);
             Log.Information("About menu");
         }
+
+        private void ExitMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            Log.Information("Exit menu");
+            Close(); // Ferme la fenêtre principale, donc l'application
+        }
     }
 }
