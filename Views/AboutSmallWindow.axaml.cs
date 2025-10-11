@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Serilog;
 
 namespace AvaloniaMvvmDraw;
 
@@ -14,6 +15,7 @@ public partial class AboutSmallWindow : Window
 
     private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        Log.Information("close");
         Close();
     }
 

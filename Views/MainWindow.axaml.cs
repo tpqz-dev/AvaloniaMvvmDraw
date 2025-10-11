@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using AvaloniaMvvmDraw.Views;
+using Serilog;
 
 namespace AvaloniaMvvmDraw.Views
 {
@@ -14,6 +15,7 @@ namespace AvaloniaMvvmDraw.Views
         {
             var aboutWindow = new AboutSmallWindow();
             await aboutWindow.ShowDialog(this);
+            Log.Information("About menu");
         }
     }
 }
