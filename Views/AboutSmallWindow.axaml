@@ -1,0 +1,14 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AvaloniaMvvmDraw.AboutSmallWindow"
+        Width="420" Height="500"
+        CanResize="False"
+        SystemDecorations="None"
+        WindowStartupLocation="CenterOwner"
+        Background="Gray"
+        PointerPressed="Window_PointerPressed">
+  <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+    <TextBlock Text="Welcome to Avalonia!" FontSize="18" HorizontalAlignment="Center"/>
+    <Button Width="100" Height="32" Content="Close" HorizontalAlignment="Center" Click="CloseButton_Click"/>
+  </StackPanel>
+</Window>
