@@ -1,12 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:AvaloniaMvvmDraw.Views"
-        x:Class="AvaloniaMvvmDraw.Views.MainWindow"
-        Title="AvaloniaMvvmDraw" Width="800" Height="600">
+        x:Class="AvaloniaMvvmDraw.Views.MainWindow">
   <DockPanel>
+    <!-- Your existing menu -->
     <Menu DockPanel.Dock="Top">
       <MenuItem Header="_File">
-        <MenuItem Header="_Load"/>
+        <MenuItem Header="_Load" Click="LoadMenu_Click"/>
         <MenuItem Header="_Save"/>
         <MenuItem Header="E_xit" Click="ExitMenu_Click"/>
       </MenuItem>
@@ -14,6 +14,22 @@
         <MenuItem Header="_About" Click="AboutMenu_Click"/>
       </MenuItem>
     </Menu>
-    <views:DrawingSurface/>
+
+    <!-- Horizontal bar of 32 px with a slider named 'rotation' -->
+    <Border DockPanel.Dock="Top" Height="32" Background="LightGray">
+      <Grid ColumnDefinitions="Auto,*" Margin="8,0">
+        <TextBlock Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <Slider x:Name="rotation"
+                Minimum="0" Maximum="360"
+                TickFrequency="15"
+                VerticalAlignment="Center"
+                Value="{Binding Rotation, ElementName=drawingSurface, Mode=TwoWay}"/>
+      </Grid>
+    </Border>
+
+    <!-- Bordure rouge 1px autour de la DrawingSurface -->
+    <Border BorderBrush="Red" BorderThickness="1">
+      <views:DrawingSurface x:Name="drawingSurface"/>
+    </Border>
   </DockPanel>
 </Window>
