@@ -23,6 +23,12 @@ namespace AvaloniaMvvmDraw.Views
         private EventHandler<PointerWheelEventArgs>? _topLevelWheelHandler;
         private static readonly IPen RedLayerBorder = new Pen(Brushes.Red, 1);
 
+        // Mode déplacement du dernier calque
+        private bool _isMovingLastLayer;
+        private IMovableRectLayer? _movingLayer;
+        private Point _layerDragStartPointer;
+        private Rect _layerDragStartRect;
+
         public static readonly StyledProperty<double> RotationProperty =
             AvaloniaProperty.Register<DrawingSurface, double>(nameof(Rotation), 0d);
 
@@ -41,6 +47,15 @@ namespace AvaloniaMvvmDraw.Views
 
         public static readonly StyledProperty<IBrush?> BackgroundProperty =
             AvaloniaProperty.Register<DrawingSurface, IBrush?>(nameof(Background));
+
+        public static readonly StyledProperty<IDrawableLayer?> SelectedDrawableLayerProperty =
+            AvaloniaProperty.Register<DrawingSurface, IDrawableLayer?>(nameof(SelectedDrawableLayer));
+
+        public IDrawableLayer? SelectedDrawableLayer
+        {
+            get => GetValue(SelectedDrawableLayerProperty);
+            set => SetValue(SelectedDrawableLayerProperty, value);
+        }
 
         static DrawingSurface()
         {
@@ -69,15 +84,78 @@ namespace AvaloniaMvvmDraw.Views
                 handledEventsToo: true);
         }
 
+        // Appelé par le bouton "moveButton"
+        public void BeginMoveLastLayer()
+        {
+            _isMovingLastLayer = false;
+            _movingLayer = null;
+
+            // Ne bouger que le dernier layer qui a un Rect
+            // Désormais: le layer sélectionné via le panel 'layer' sera déplacé
+            _isMovingLastLayer = true;
+            Cursor = new Cursor(StandardCursorType.SizeAll);
+            Focus(); // s'assure de recevoir les événements
+            Focus(); // s'assure de recevoir les événements
+        }
+
         private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.NewItems is { Count: > 0 })
+            // Applique la bordure aux nouveaux calques et force la sélection
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is { Count: > 0 })
             {
+                IDrawableLayer? last = null;
                 foreach (var item in e.NewItems)
                 {
                     if (item is IBorderedLayer bordered)
                         bordered.BorderPen = RedLayerBorder;
+
+                    if (item is IDrawableLayer dl)
+                        last = dl;
                 }
+
+                if (last is not null)
+                    SelectedDrawableLayer = last;
+
+                InvalidateVisual();
+                return;
+            }
+
+            // Lors d'un chargement/réinitialisation de la collection, sélectionner le dernier calque
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                SelectedDrawableLayer = Layers.Count > 0 ? Layers[Layers.Count - 1] : null;
+                InvalidateVisual();
+                return;
+            }
+
+            // Si le calque sélectionné est supprimé, sélectionner le voisin pertinent
+            if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems is { Count: > 0 })
+            {
+                var removedSelected = false;
+                foreach (var item in e.OldItems)
+                    removedSelected |= ReferenceEquals(item, SelectedDrawableLayer);
+
+                if (removedSelected)
+                {
+                    if (Layers.Count > 0)
+                    {
+                        var idx = Math.Min(Math.Max(e.OldStartingIndex, 0), Layers.Count - 1);
+                        SelectedDrawableLayer = Layers[idx];
+                    }
+                    else
+                    {
+                        SelectedDrawableLayer = null;
+                    }
+                }
+
+                InvalidateVisual();
+                return;
+            }
+
+            // Remplacement: sélectionner le nouvel élément ciblé
+            if (e.Action == NotifyCollectionChangedAction.Replace && e.NewItems is { Count: > 0 })
+            {
+                SelectedDrawableLayer = e.NewItems[e.NewItems.Count - 1] as IDrawableLayer;
                 InvalidateVisual();
             }
         }
@@ -154,6 +232,22 @@ namespace AvaloniaMvvmDraw.Views
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
+
+            // Déplacement du calque sélectionné avec le clic gauche (après clic sur moveButton)
+            if (_isMovingLastLayer && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                _movingLayer = SelectedDrawableLayer as IMovableRectLayer;
+                if (_movingLayer is null)
+                    return;
+
+                _layerDragStartPointer = e.GetPosition(this);
+                _layerDragStartRect = _movingLayer.Rect;
+                e.Pointer.Capture(this);
+                e.Handled = true;
+                return;
+            }
+
+            // Pan avec le bouton du milieu
             if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
             {
                 _isPanning = true;
@@ -161,15 +255,42 @@ namespace AvaloniaMvvmDraw.Views
             }
         }
 
-        protected override void OnPointerReleased(PointerReleasedEventArgs e)
-        {
-            base.OnPointerReleased(e);
-            _isPanning = false;
-        }
-
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
+
+            // Continuer à déplacer si nous avons la capture (plus robuste que tester le bouton)
+            if (_isMovingLastLayer && _movingLayer is not null && e.Pointer.Captured == this)
+            {
+                var pos = e.GetPosition(this);
+                var deltaScreen = pos - _layerDragStartPointer;
+
+                // Convertit le delta écran -> espace "calques" (monde) en annulant zoom et rotation
+                var scale = GetCurrentScale();
+                if (scale <= 0) scale = 1;
+
+                var angle = Rotation * Math.PI / 180.0;
+                var cos = Math.Cos(angle);
+                var sin = Math.Sin(angle);
+
+                var dx = deltaScreen.X / scale;
+                var dy = deltaScreen.Y / scale;
+
+                // Appliquer la rotation inverse: R(-angle) * (dx, dy)
+                var worldDx = dx * cos + dy * sin;
+                var worldDy = -dx * sin + dy * cos;
+
+                _movingLayer.Rect = new Rect(
+                    _layerDragStartRect.X + worldDx,
+                    _layerDragStartRect.Y + worldDy,
+                    _layerDragStartRect.Width,
+                    _layerDragStartRect.Height);
+
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
             if (_isPanning && e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
             {
                 var currentPoint = e.GetPosition(this);
@@ -178,6 +299,30 @@ namespace AvaloniaMvvmDraw.Views
                 _lastPanPoint = currentPoint;
                 InvalidateVisual();
             }
+        }
+
+        private double GetCurrentScale()
+        {
+            if (Matrix.TryDecomposeTransform(_transform, out var dec))
+                return Math.Abs(dec.Scale.X);
+            return 1.0;
+        }
+
+        protected override void OnPointerReleased(PointerReleasedEventArgs e)
+        {
+            base.OnPointerReleased(e);
+
+            if (_isMovingLastLayer)
+            {
+                // Fin du drag uniquement, rester en mode déplacer
+                if (e.Pointer.Captured == this)
+                    e.Pointer.Capture(null);
+                // Ne pas désactiver le mode ni changer le curseur
+                e.Handled = true;
+                return;
+            }
+
+           //    _isPanning = false;
         }
 
         protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
@@ -224,12 +369,18 @@ namespace AvaloniaMvvmDraw.Views
         IPen? BorderPen { get; set; }
     }
 
+    // Calque déplaçable via un Rect
+    public interface IMovableRectLayer
+    {
+        Rect Rect { get; set; }
+    }
+
     // Calque simple pour dessiner un rectangle
-    public sealed class RectangleLayer : IDrawableLayer, IBorderedLayer
+    public sealed class RectangleLayer : IDrawableLayer, IBorderedLayer, IMovableRectLayer
     {
         public Size Size { get; set; } // mis à jour par DrawingSurface
 
-        private readonly Rect _rect;
+        public Rect Rect { get; set; }
         private readonly IBrush? _fill;
         private readonly IPen? _pen;
 
@@ -237,7 +388,7 @@ namespace AvaloniaMvvmDraw.Views
 
         public RectangleLayer(Rect rect, IBrush? fill, IPen? pen)
         {
-            _rect = rect;
+            Rect = rect;
             _fill = fill;
             _pen = pen;
         }
@@ -245,7 +396,7 @@ namespace AvaloniaMvvmDraw.Views
         public void Draw(DrawingContext context)
         {
             // Utilise la bordure rouge imposée (ou le stylo fourni en fallback)
-            context.DrawRectangle(_fill, BorderPen ?? _pen, _rect);
+            context.DrawRectangle(_fill, BorderPen ?? _pen, Rect);
         }
     }
 }
