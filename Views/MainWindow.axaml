@@ -82,7 +82,7 @@
         <TranslateTransform X="160" Y="40"/>
       </Border.RenderTransform>
 
-      <Grid RowDefinitions="Auto,*">
+      <Grid Name="layersGrid" RowDefinitions="Auto,Auto,*">
         <Border x:Name="layerHeader"
                 Background="#FF2D2D2D" Height="28"
                 Cursor="SizeAll"
@@ -96,8 +96,14 @@
                      Text="Layers"/>
         </Border>
 
+        <!-- Barre d'actions -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,4,8,0">
+          <Button x:Name="addLayerButton" Content="Ajouter" Margin="0,0,8,0" Click="AddLayerButton_Click"/>
+          <Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
+        </StackPanel>
+
         <!-- Renommé pour éviter le doublon -->
-        <ListBox Grid.Row="1" Margin="8"
+        <ListBox Grid.Row="2" Margin="8"
                  x:Name="layersList"
                  ItemsSource="{Binding ElementName=drawingSurface, Path=Layers}"
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
