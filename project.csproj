@@ -1,0 +1,5 @@
+<PropertyGroup>
+  <OutputType>WinExe</OutputType>
+  <TargetFramework>net8.0</TargetFramework>
+  <XamlHotReloadEnabled>false</XamlHotReloadEnabled>
+</PropertyGroup>
