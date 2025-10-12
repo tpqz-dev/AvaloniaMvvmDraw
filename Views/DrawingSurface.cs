@@ -154,7 +154,7 @@ namespace AvaloniaMvvmDraw.Views
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
             {
                 _isPanning = true;
                 _lastPanPoint = e.GetPosition(this);
@@ -170,7 +170,7 @@ namespace AvaloniaMvvmDraw.Views
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
-            if (_isPanning && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            if (_isPanning && e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
             {
                 var currentPoint = e.GetPosition(this);
                 var delta = currentPoint - _lastPanPoint;

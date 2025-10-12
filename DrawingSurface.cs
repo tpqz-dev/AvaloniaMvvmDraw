@@ -32,14 +32,16 @@ namespace AvaloniaMvvmDraw.Views
             await using var stream = await files[0].OpenReadAsync();
             var bitmap = new Bitmap(stream);
 
-            Layers.Insert(0, new ImageLayer(bitmap));
+            // Ajouter au-dessus: dessiné en dernier => au-dessus des anciens calques
+            Layers.Add(new ImageLayer(bitmap));
             InvalidateVisual();
         }
     }
 
-    internal sealed class ImageLayer : IDrawableLayer
+    internal sealed class ImageLayer : IDrawableLayer, IBorderedLayer
     {
         public Size Size { get; set; }
+        public IPen? BorderPen { get; set; }
 
         private readonly Bitmap _bitmap;
 
@@ -47,10 +49,13 @@ namespace AvaloniaMvvmDraw.Views
 
         public void Draw(DrawingContext context)
         {
-            var sz = _bitmap.Size; // taille en DIP
-            var src = new Rect(sz);
-            var dst = new Rect(0, 0, sz.Width, sz.Height);
+            // Dessine l'image à (0,0)
+            var src = new Rect(_bitmap.Size);
+            var dst = new Rect(0, 0, _bitmap.Size.Width, _bitmap.Size.Height);
             context.DrawImage(_bitmap, src, dst);
+
+            if (BorderPen is not null)
+                context.DrawRectangle(null, BorderPen, new Rect(0, 0, Size.Width, Size.Height));
         }
     }
-}   
+}
