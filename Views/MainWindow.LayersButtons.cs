@@ -1,8 +1,9 @@
-using Avalonia.Interactivity;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using AvaloniaMvvmDraw.Views.Models;
+using System.Linq;
 
 namespace AvaloniaMvvmDraw.Views
 {
@@ -33,10 +34,10 @@ namespace AvaloniaMvvmDraw.Views
             {
                
 
-                if (layers.Count == 0)
+                if (layers.Count == 1)
                 {
                     // Plus de calques
-                    drawingSurface.SelectedDrawableLayer = null;
+                    drawingSurface.SelectedDrawableLayer = layers.First();
                 }
                 else
                 {
