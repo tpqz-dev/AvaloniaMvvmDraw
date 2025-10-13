@@ -29,6 +29,10 @@ namespace AvaloniaMvvmDraw.Views
         private Point _layerDragStartPointer;
         private Rect _layerDragStartRect;
 
+        // Suivi position souris
+        private Point _lastPointerPos;
+        private bool _hasPointerPos;
+
         public static readonly StyledProperty<double> RotationProperty =
             AvaloniaProperty.Register<DrawingSurface, double>(nameof(Rotation), 0d);
 
@@ -96,6 +100,7 @@ namespace AvaloniaMvvmDraw.Views
             Cursor = new Cursor(StandardCursorType.SizeAll);
             Focus(); // s'assure de recevoir les événements
             Focus(); // s'assure de recevoir les événements
+            InvalidateVisual(); // rafraîchit l'affichage du statut
         }
 
         private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -227,6 +232,21 @@ namespace AvaloniaMvvmDraw.Views
                 Brushes.Black
             );
             context.DrawText(formattedText, new Point(8, 8));
+
+            // Ligne 2: position souris + statut du mode déplacement
+            var mouseStr = _hasPointerPos ? $"{_lastPointerPos.X:0}, {_lastPointerPos.Y:0}" : "—";
+            var moveStr = _isMovingLastLayer ? "Activé" : "Désactivé";
+            var y2 = 8 + formattedText.Height + 4;
+
+            var formattedText2 = new FormattedText(
+                $"Souris: {mouseStr} | Déplacer calque: {moveStr}",
+                CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                16,
+                Brushes.Black
+            );
+            context.DrawText(formattedText2, new Point(8, y2));
         }
 
         protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -258,6 +278,10 @@ namespace AvaloniaMvvmDraw.Views
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
+
+            // Mise à jour de la position de la souris (affichage overlay)
+            _lastPointerPos = e.GetPosition(this);
+            _hasPointerPos = true;
 
             // Continuer à déplacer si nous avons la capture (plus robuste que tester le bouton)
             if (_isMovingLastLayer && _movingLayer is not null && e.Pointer.Captured == this)
@@ -298,7 +322,26 @@ namespace AvaloniaMvvmDraw.Views
                 _transform = Matrix.CreateTranslation(new Vector(delta.X, delta.Y)) * _transform;
                 _lastPanPoint = currentPoint;
                 InvalidateVisual();
+                return;
             }
+
+            // Rafraîchit l'overlay même sans pan/move
+            InvalidateVisual();
+        }
+
+        protected override void OnPointerEntered(PointerEventArgs e)
+        {
+            base.OnPointerEntered(e);
+            _hasPointerPos = true;
+            _lastPointerPos = e.GetPosition(this);
+            InvalidateVisual();
+        }
+
+        protected override void OnPointerExited(PointerEventArgs e)
+        {
+            base.OnPointerExited(e);
+            _hasPointerPos = false;
+            InvalidateVisual();
         }
 
         private double GetCurrentScale()
@@ -319,6 +362,7 @@ namespace AvaloniaMvvmDraw.Views
                     e.Pointer.Capture(null);
                 // Ne pas désactiver le mode ni changer le curseur
                 e.Handled = true;
+                InvalidateVisual();
                 return;
             }
 
