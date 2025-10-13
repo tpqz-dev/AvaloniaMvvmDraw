@@ -26,6 +26,7 @@ namespace AvaloniaMvvmDraw.Views
         public ObservableCollection<IDrawableLayer> Layers { get; } = new ();
 
         private static readonly IPen RedLayerBorder = new Pen(Brushes.Red, 1);
+        private static readonly IPen YellowLayerBorder = new Pen(Brushes.Yellow, 1);
 
         // Numéroteur d'ordre d'insertion des calques
         private int _nextLayerNumber = 1;
@@ -75,6 +76,13 @@ namespace AvaloniaMvvmDraw.Views
                 x.InvalidateVisual();
                 Log.Information("Rotation changed: {Rotation}°", x.Rotation);
             });
+
+            // Met à jour les bordures quand la sélection change
+            SelectedDrawableLayerProperty.Changed.AddClassHandler<DrawingSurface>((x, e) =>
+            {
+                x.UpdateLayerBorders();
+                x.InvalidateVisual();
+            });
         }
 
         public DrawingSurface()
@@ -93,6 +101,20 @@ namespace AvaloniaMvvmDraw.Views
                 (s, e) => OnPointerWheelChanged(e),
                 RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
                 handledEventsToo: true);
+        }
+
+        // Synchronise la couleur de bordure (jaune si sélectionné, rouge sinon)
+        private void UpdateLayerBorders()
+        {
+            foreach (var l in Layers)
+            {
+                if (l is IBorderedLayer bl)
+                {
+                    bl.BorderPen = ReferenceEquals(l, SelectedDrawableLayer)
+                        ? YellowLayerBorder
+                        : RedLayerBorder;
+                }
+            }
         }
 
         // Appelé par le bouton "moveButton"
@@ -136,7 +158,7 @@ namespace AvaloniaMvvmDraw.Views
                 if (last is not null)
                     SelectedDrawableLayer = last;
 
-                InvalidateVisual();
+                // Après sélection, les bordures seront remises à jour par UpdateLayerBorders()
                 return;
             }
 
@@ -144,7 +166,6 @@ namespace AvaloniaMvvmDraw.Views
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
                 SelectedDrawableLayer = Layers.Count > 0 ? Layers[Layers.Count - 1] : null;
-                InvalidateVisual();
                 return;
             }
 
@@ -168,7 +189,6 @@ namespace AvaloniaMvvmDraw.Views
                     }
                 }
 
-                InvalidateVisual();
                 return;
             }
 
@@ -176,7 +196,6 @@ namespace AvaloniaMvvmDraw.Views
             if (e.Action == NotifyCollectionChangedAction.Replace && e.NewItems is { Count: > 0 })
             {
                 SelectedDrawableLayer = e.NewItems[e.NewItems.Count - 1] as IDrawableLayer;
-                InvalidateVisual();
             }
         }
 

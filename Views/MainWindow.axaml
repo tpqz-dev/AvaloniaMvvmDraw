@@ -110,9 +110,15 @@
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
                  SelectionMode="Single"
                  HorizontalAlignment="Stretch"
-                 MinWidth="160">
+                 MinWidth="160"
+                 DragDrop.AllowDrop="True"
+                 DragDrop.DragOver="LayersList_DragOver"
+                 DragDrop.Drop="LayersList_Drop"
+                 PointerPressed="LayersList_PointerPressed"
+                 PointerMoved="LayersList_PointerMoved"
+                 PointerReleased="LayersList_PointerReleased">
           <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="intf:IDrawableLayer" >
+            <DataTemplate x:DataType="intf:IDrawableLayer">
               <TextBlock Text="{Binding Name}"/>
             </DataTemplate>
           </ListBox.ItemTemplate>
