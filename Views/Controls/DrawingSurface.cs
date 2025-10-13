@@ -27,6 +27,9 @@ namespace AvaloniaMvvmDraw.Views
 
         private static readonly IPen RedLayerBorder = new Pen(Brushes.Red, 1);
 
+        // Numéroteur d'ordre d'insertion des calques
+        private int _nextLayerNumber = 1;
+
         // Mode déplacement du dernier calque
         private bool _isMovingLastLayer;
         private IMovableRectLayer? _movingLayer;
@@ -119,7 +122,15 @@ namespace AvaloniaMvvmDraw.Views
                         bordered.BorderPen = RedLayerBorder;
 
                     if (item is IDrawableLayer dl)
+                    {
+                        // Ajoute le numéro d'ordre d'insertion au Name
+                        dl.Name = string.IsNullOrWhiteSpace(dl.Name)
+                            ? $"Layer {_nextLayerNumber}"
+                            : $"{dl.Name}{_nextLayerNumber}";
+                        _nextLayerNumber++;
+
                         last = dl;
+                    }
                 }
 
                 if (last is not null)
