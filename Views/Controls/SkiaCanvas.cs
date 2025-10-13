@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using SkiaSharp;
 
-namespace AvaloniaMvvmDraw.Views;
+namespace AvaloniaMvvmDraw.Views.Controls;
 
 public class SkiaCanvas : Control
 {

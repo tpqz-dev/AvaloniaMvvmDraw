@@ -11,6 +11,8 @@ using System.Collections.Specialized;
 using System.Globalization;
 using Avalonia.Platform.Storage;
 using Avalonia.Media.Imaging;
+using AvaloniaMvvmDraw.Views.Interfaces;
+using AvaloniaMvvmDraw.Views.Models;
 
 namespace AvaloniaMvvmDraw.Views
 {
@@ -21,6 +23,8 @@ namespace AvaloniaMvvmDraw.Views
         private bool _isPanning;
         private double zoomFactor;
         private EventHandler<PointerWheelEventArgs>? _topLevelWheelHandler;
+        public ObservableCollection<IDrawableLayer> Layers { get; } = new ();
+
         private static readonly IPen RedLayerBorder = new Pen(Brushes.Red, 1);
 
         // Mode déplacement du dernier calque
@@ -48,18 +52,18 @@ namespace AvaloniaMvvmDraw.Views
             get => (IBrush?)GetValue(BackgroundProperty);
             set => SetValue(BackgroundProperty, value);
         }
+        public IDrawableLayer? SelectedDrawableLayer
+        {
+            get => GetValue(SelectedDrawableLayerProperty);
+            set => SetValue(SelectedDrawableLayerProperty, value);
+        }
+
 
         public static readonly StyledProperty<IBrush?> BackgroundProperty =
             AvaloniaProperty.Register<DrawingSurface, IBrush?>(nameof(Background));
 
         public static readonly StyledProperty<IDrawableLayer?> SelectedDrawableLayerProperty =
             AvaloniaProperty.Register<DrawingSurface, IDrawableLayer?>(nameof(SelectedDrawableLayer));
-
-        public IDrawableLayer? SelectedDrawableLayer
-        {
-            get => GetValue(SelectedDrawableLayerProperty);
-            set => SetValue(SelectedDrawableLayerProperty, value);
-        }
 
         static DrawingSurface()
         {
@@ -193,8 +197,6 @@ namespace AvaloniaMvvmDraw.Views
                 tl?.RemoveHandler(InputElement.PointerWheelChangedEvent, _topLevelWheelHandler);
             base.OnDetachedFromVisualTree(e);
         }
-
-        public ObservableCollection<IDrawableLayer> Layers { get; } = new ();
 
         public override void Render(DrawingContext context)
         {
@@ -400,47 +402,4 @@ namespace AvaloniaMvvmDraw.Views
         }
     }
 
-    public interface IDrawableLayer
-    {
-        // Chaque calque connaît la taille de la surface (fenêtre)
-        Size Size { get; set; }
-        void Draw(DrawingContext context);
-    }
-
-    // Calque qui peut recevoir une bordure imposée par la surface
-    public interface IBorderedLayer
-    {
-        IPen? BorderPen { get; set; }
-    }
-
-    // Calque déplaçable via un Rect
-    public interface IMovableRectLayer
-    {
-        Rect Rect { get; set; }
-    }
-
-    // Calque simple pour dessiner un rectangle
-    public sealed class RectangleLayer : IDrawableLayer, IBorderedLayer, IMovableRectLayer
-    {
-        public Size Size { get; set; } // mis à jour par DrawingSurface
-
-        public Rect Rect { get; set; }
-        private readonly IBrush? _fill;
-        private readonly IPen? _pen;
-
-        public IPen? BorderPen { get; set; }
-
-        public RectangleLayer(Rect rect, IBrush? fill, IPen? pen)
-        {
-            Rect = rect;
-            _fill = fill;
-            _pen = pen;
-        }
-
-        public void Draw(DrawingContext context)
-        {
-            // Utilise la bordure rouge imposée (ou le stylo fourni en fallback)
-            context.DrawRectangle(_fill, BorderPen ?? _pen, Rect);
-        }
-    }
 }

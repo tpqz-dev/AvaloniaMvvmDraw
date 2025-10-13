@@ -2,6 +2,7 @@ using Avalonia.Interactivity;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using AvaloniaMvvmDraw.Views.Models;
 
 namespace AvaloniaMvvmDraw.Views
 {
