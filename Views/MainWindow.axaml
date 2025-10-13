@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:AvaloniaMvvmDraw.Views"
+        xmlns:models="clr-namespace:AvaloniaMvvmDraw.Views.Models"
+        xmlns:intf="clr-namespace:AvaloniaMvvmDraw.Views.Interfaces"
         x:Class="AvaloniaMvvmDraw.Views.MainWindow">
   <Grid>
     <!-- Contenu existant -->
@@ -102,14 +104,19 @@
           <Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
         </StackPanel>
 
-        <!-- Renommé pour éviter le doublon -->
         <ListBox Grid.Row="2" Margin="8"
                  x:Name="layersList"
                  ItemsSource="{Binding ElementName=drawingSurface, Path=Layers}"
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
                  SelectionMode="Single"
                  HorizontalAlignment="Stretch"
-                 MinWidth="160" />
+                 MinWidth="160">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="intf:IDrawableLayer" >
+              <TextBlock Text="{Binding Name}"/>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
       </Grid>
     </Border>
   </Grid>

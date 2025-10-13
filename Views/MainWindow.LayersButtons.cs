@@ -22,9 +22,44 @@ namespace AvaloniaMvvmDraw.Views
 
         private void RemoveLayerButton_Click(object? sender, RoutedEventArgs e)
         {
+            var layers = drawingSurface.Layers;
             var sel = drawingSurface.SelectedDrawableLayer;
-            if (sel is not null)
-                drawingSurface.Layers.Remove(sel);
+
+            if (sel is null || layers.Count==1)
+                return;
+
+            var idx = layers.IndexOf(sel);
+            if (idx >= 0)
+            {
+               
+
+                if (layers.Count == 0)
+                {
+                    // Plus de calques
+                    drawingSurface.SelectedDrawableLayer = null;
+                }
+                else
+                {
+                    // Sélectionne le calque précédent si possible, sinon le premier
+                    var prevIndex = System.Math.Max(0, idx - 1);
+                    drawingSurface.SelectedDrawableLayer = layers[prevIndex];
+                }
+                layers.RemoveAt(idx);
+            }
+        }
+
+        // Bouton: sélectionner le calque précédent
+        private void PreviousLayerButton_Click(object? sender, RoutedEventArgs e)
+        {
+            var layers = drawingSurface.Layers;
+            var current = drawingSurface.SelectedDrawableLayer;
+            if (current is null)
+                return;
+
+            var index = layers.IndexOf(current);
+            if (index > 0)
+                drawingSurface.SelectedDrawableLayer = layers[index - 1];
+            // Si déjà au premier, on ne change rien
         }
     }
 }
