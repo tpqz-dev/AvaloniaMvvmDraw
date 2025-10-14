@@ -234,9 +234,9 @@ namespace AvaloniaMvvmDraw.Views
 
             var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
             var angleRad = Rotation * Math.PI / 180.0;
-            var rotation = Matrix.CreateTranslation(new Vector(center.X, center.Y)) *
+            var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
                            Matrix.CreateRotation(angleRad) *
-                           Matrix.CreateTranslation(new Vector(-center.X, -center.Y));
+                           Matrix.CreateTranslation(new Vector(center.X, center.Y));
 
             // Taille de référence = taille de la fenêtre principale (fallback: taille du contrôle)
             var tl = TopLevel.GetTopLevel(this);

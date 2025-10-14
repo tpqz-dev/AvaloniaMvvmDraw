@@ -5,7 +5,7 @@
         xmlns:intf="clr-namespace:AvaloniaMvvmDraw.Views.Interfaces"
         x:Class="AvaloniaMvvmDraw.Views.MainWindow">
   <Grid>
-    <!-- Contenu existant -->
+    <!-- menu -->
     <DockPanel>
       <Menu DockPanel.Dock="Top">
         <MenuItem Header="_File">
@@ -17,7 +17,8 @@
           <MenuItem Header="_About" Click="AboutMenu_Click"/>
         </MenuItem>
       </Menu>
-
+      
+      <!-- Panneau flottant déplaçable -->
       <Border DockPanel.Dock="Top" Height="32" Background="LightGray">
         <Grid ColumnDefinitions="Auto,*" Margin="8,0">
           <TextBlock Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
