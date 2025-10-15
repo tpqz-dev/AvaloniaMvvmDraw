@@ -48,7 +48,11 @@ namespace AvaloniaMvvmDraw.Views
         {
             None,
             Move,
+            // Edge resize
             ResizeLeft, ResizeRight, ResizeTop, ResizeBottom,
+            // Corner resize
+            ResizeTL, ResizeTR, ResizeBR, ResizeBL,
+            // Corner rotate (offset outward)
             RotateTL, RotateTR, RotateBR, RotateBL
         }
         private Handle _activeHandle = Handle.None;
@@ -289,7 +293,6 @@ namespace AvaloniaMvvmDraw.Views
         {
             var rc = sel.Rect;
             var angle = GetLayerAngle(SelectedDrawableLayer!);
-            // Get 4 corners in world space then to screen
             var corners = GetRotatedCorners(rc, angle);
             var cornersScreen = new Point[4];
             for (int i = 0; i < 4; i++)
@@ -300,17 +303,44 @@ namespace AvaloniaMvvmDraw.Views
             for (int i = 0; i < 4; i++)
                 context.DrawLine(pen, cornersScreen[i], cornersScreen[(i + 1) % 4]);
 
-            // Handles (corners for rotate, edges for resize)
-            const double hs = 5;
-            void DrawHandle(Point p, IBrush fill) => context.FillRectangle(fill, new Rect(p.X - hs, p.Y - hs, hs * 2, hs * 2));
-            DrawHandle(cornersScreen[0], Brushes.OrangeRed); // TL rotate
-            DrawHandle(cornersScreen[1], Brushes.OrangeRed); // TR rotate
-            DrawHandle(cornersScreen[2], Brushes.OrangeRed); // BR rotate
-            DrawHandle(cornersScreen[3], Brushes.OrangeRed); // BL rotate
-            DrawHandle(Mid(cornersScreen[0], cornersScreen[1]), Brushes.DodgerBlue); // top resize
-            DrawHandle(Mid(cornersScreen[1], cornersScreen[2]), Brushes.DodgerBlue); // right resize
-            DrawHandle(Mid(cornersScreen[2], cornersScreen[3]), Brushes.DodgerBlue); // bottom resize
-            DrawHandle(Mid(cornersScreen[3], cornersScreen[0]), Brushes.DodgerBlue); // left resize
+            // Handles sizes
+            const double hs = 5; // square half-size
+            const double rotOffset = 16; // pixels outward from corner
+            var centerScreen = WorldToScreen(new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2));
+
+            // Helper to draw square handle
+            void DrawSquare(Point p, IBrush fill) => context.FillRectangle(fill, new Rect(p.X - hs, p.Y - hs, hs * 2, hs * 2));
+            // Helper to draw rotation circle
+            void DrawCircle(Point p, IBrush fill)
+            {
+                context.DrawEllipse(fill, null, p, hs, hs);
+            }
+
+            // Corner resize handles (blue squares at corners)
+            DrawSquare(cornersScreen[0], Brushes.DodgerBlue); // TL
+            DrawSquare(cornersScreen[1], Brushes.DodgerBlue); // TR
+            DrawSquare(cornersScreen[2], Brushes.DodgerBlue); // BR
+            DrawSquare(cornersScreen[3], Brushes.DodgerBlue); // BL
+
+            // Edge resize handles (blue squares at edge midpoints)
+            DrawSquare(Mid(cornersScreen[0], cornersScreen[1]), Brushes.DodgerBlue); // top
+            DrawSquare(Mid(cornersScreen[1], cornersScreen[2]), Brushes.DodgerBlue); // right
+            DrawSquare(Mid(cornersScreen[2], cornersScreen[3]), Brushes.DodgerBlue); // bottom
+            DrawSquare(Mid(cornersScreen[3], cornersScreen[0]), Brushes.DodgerBlue); // left
+
+            // Rotation handles: at outward-offset positions from corners
+            Point RotPos(Point corner)
+            {
+                var v = corner - centerScreen;
+                var len = Math.Sqrt(v.X * v.X + v.Y * v.Y);
+                if (len < 1) len = 1;
+                var nx = v.X / len; var ny = v.Y / len;
+                return new Point(corner.X + nx * rotOffset, corner.Y + ny * rotOffset);
+            }
+            DrawCircle(RotPos(cornersScreen[0]), Brushes.OrangeRed); // TL rot
+            DrawCircle(RotPos(cornersScreen[1]), Brushes.OrangeRed); // TR rot
+            DrawCircle(RotPos(cornersScreen[2]), Brushes.OrangeRed); // BR rot
+            DrawCircle(RotPos(cornersScreen[3]), Brushes.OrangeRed); // BL rot
         }
 
         private static Point Mid(Point a, Point b) => new Point((a.X + b.X) / 2, (a.Y + b.Y) / 2);
@@ -472,17 +502,31 @@ namespace AvaloniaMvvmDraw.Views
 
         private Handle HitTestHandle(IMovableRectLayer sel, Point screen)
         {
-            const double hs = 7; // hit size in pixels
+            const double hs = 7; // hit radius
             var angle = GetLayerAngle(SelectedDrawableLayer!);
             var rc = sel.Rect;
             var corners = GetRotatedCorners(rc, angle);
             var cScreen = new Point[4];
             for (int i = 0; i < 4; i++) cScreen[i] = WorldToScreen(corners[i]);
-            // corners rotation handles
-            if (Near(cScreen[0], screen, hs)) return Handle.RotateTL;
-            if (Near(cScreen[1], screen, hs)) return Handle.RotateTR;
-            if (Near(cScreen[2], screen, hs)) return Handle.RotateBR;
-            if (Near(cScreen[3], screen, hs)) return Handle.RotateBL;
+            var centerScreen = WorldToScreen(new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2));
+            Point RotPos(Point corner)
+            {
+                var v = corner - centerScreen;
+                var len = Math.Sqrt(v.X * v.X + v.Y * v.Y);
+                if (len < 1) len = 1;
+                var nx = v.X / len; var ny = v.Y / len;
+                return new Point(corner.X + nx * 16, corner.Y + ny * 16);
+            }
+            // rotation handles first
+            if (Near(RotPos(cScreen[0]), screen, hs)) return Handle.RotateTL;
+            if (Near(RotPos(cScreen[1]), screen, hs)) return Handle.RotateTR;
+            if (Near(RotPos(cScreen[2]), screen, hs)) return Handle.RotateBR;
+            if (Near(RotPos(cScreen[3]), screen, hs)) return Handle.RotateBL;
+            // corner resize
+            if (Near(cScreen[0], screen, hs)) return Handle.ResizeTL;
+            if (Near(cScreen[1], screen, hs)) return Handle.ResizeTR;
+            if (Near(cScreen[2], screen, hs)) return Handle.ResizeBR;
+            if (Near(cScreen[3], screen, hs)) return Handle.ResizeBL;
             // edges resize
             if (Near(Mid(cScreen[0], cScreen[1]), screen, hs)) return Handle.ResizeTop;
             if (Near(Mid(cScreen[1], cScreen[2]), screen, hs)) return Handle.ResizeRight;
@@ -549,7 +593,6 @@ namespace AvaloniaMvvmDraw.Views
             {
                 var currentScreen = e.GetPosition(this);
                 var deltaScreen = currentScreen - _transformStartPointerScreen;
-
                 var scale = GetCurrentScale(); if (scale <= 0) scale = 1;
                 var ang = Rotation * Math.PI / 180.0;
                 var cos = Math.Cos(ang); var sin = Math.Sin(ang);
@@ -561,7 +604,8 @@ namespace AvaloniaMvvmDraw.Views
                 {
                     sel.Rect = new Rect(_transformStartRect.X + worldDx, _transformStartRect.Y + worldDy, _transformStartRect.Width, _transformStartRect.Height);
                 }
-                else if (_activeHandle == Handle.ResizeLeft || _activeHandle == Handle.ResizeRight || _activeHandle == Handle.ResizeTop || _activeHandle == Handle.ResizeBottom)
+                else if (_activeHandle == Handle.ResizeLeft || _activeHandle == Handle.ResizeRight || _activeHandle == Handle.ResizeTop || _activeHandle == Handle.ResizeBottom
+                      || _activeHandle == Handle.ResizeTL || _activeHandle == Handle.ResizeTR || _activeHandle == Handle.ResizeBR || _activeHandle == Handle.ResizeBL)
                 {
                     var rc0 = _transformStartRect;
                     var center = new Point(rc0.X + rc0.Width / 2, rc0.Y + rc0.Height / 2);
@@ -569,17 +613,62 @@ namespace AvaloniaMvvmDraw.Views
                     var local = RotatePoint(pointerWorld, center, -_transformStartAngle);
                     double minSize = 5;
                     double left = rc0.Left, right = rc0.Right, top = rc0.Top, bottom = rc0.Bottom;
-                    if (_activeHandle == Handle.ResizeLeft)
-                        left = Math.Min(local.X, right - minSize);
-                    else if (_activeHandle == Handle.ResizeRight)
-                        right = Math.Max(local.X, left + minSize);
-                    else if (_activeHandle == Handle.ResizeTop)
-                        top = Math.Min(local.Y, bottom - minSize);
-                    else if (_activeHandle == Handle.ResizeBottom)
-                        bottom = Math.Max(local.Y, top + minSize);
+                    bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+                    double ar = rc0.Width > 0 ? rc0.Width / rc0.Height : 1.0;
+
+                    void CornerResize(bool leftSide, bool topSide)
+                    {
+                        if (!shift)
+                        {
+                            if (leftSide) left = Math.Min(local.X, right - minSize); else right = Math.Max(local.X, left + minSize);
+                            if (topSide) top = Math.Min(local.Y, bottom - minSize); else bottom = Math.Max(local.Y, top + minSize);
+                        }
+                        else
+                        {
+                            // proportional: keep opposite corner fixed
+                            double targetW = Math.Abs((right - (leftSide ? local.X : left)));
+                            double targetH = Math.Abs((bottom - (topSide ? local.Y : top)));
+                            // compute scale to preserve aspect ratio
+                            double s = Math.Max(targetW / rc0.Width, targetH / rc0.Height);
+                            s = Math.Max(s, minSize / Math.Min(rc0.Width, rc0.Height));
+                            double newW = rc0.Width * s;
+                            double newH = rc0.Height * s;
+                            if (leftSide) left = right - newW; else right = left + newW;
+                            if (topSide) top = bottom - newH; else bottom = top + newH;
+                        }
+                    }
+
+                    switch (_activeHandle)
+                    {
+                        case Handle.ResizeLeft:
+                            left = Math.Min(local.X, right - minSize);
+                            break;
+                        case Handle.ResizeRight:
+                            right = Math.Max(local.X, left + minSize);
+                            break;
+                        case Handle.ResizeTop:
+                            top = Math.Min(local.Y, bottom - minSize);
+                            break;
+                        case Handle.ResizeBottom:
+                            bottom = Math.Max(local.Y, top + minSize);
+                            break;
+                        case Handle.ResizeTL:
+                            CornerResize(leftSide: true, topSide: true);
+                            break;
+                        case Handle.ResizeTR:
+                            CornerResize(leftSide: false, topSide: true);
+                            break;
+                        case Handle.ResizeBR:
+                            CornerResize(leftSide: false, topSide: false);
+                            break;
+                        case Handle.ResizeBL:
+                            CornerResize(leftSide: true, topSide: false);
+                            break;
+                    }
+
                     sel.Rect = new Rect(left, top, Math.Max(minSize, right - left), Math.Max(minSize, bottom - top));
                 }
-                else
+                else // rotate
                 {
                     var rc0 = _transformStartRect;
                     var center = new Point(rc0.X + rc0.Width / 2, rc0.Y + rc0.Height / 2);
