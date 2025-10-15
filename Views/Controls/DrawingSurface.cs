@@ -7,6 +7,7 @@ using AvaloniaMvvmDraw.Views.Interfaces;
 using AvaloniaMvvmDraw.Views.Models;
 using Serilog;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
@@ -40,6 +41,23 @@ namespace AvaloniaMvvmDraw.Views
 
         private Point _lastPointerPos;
         private bool _hasPointerPos;
+
+        // Transform mode (per-layer)
+        private bool _isTransformMode;
+        private enum Handle
+        {
+            None,
+            Move,
+            ResizeLeft, ResizeRight, ResizeTop, ResizeBottom,
+            RotateTL, RotateTR, RotateBR, RotateBL
+        }
+        private Handle _activeHandle = Handle.None;
+        private Rect _transformStartRect;
+        private double _transformStartAngle;
+        private Point _transformStartPointerScreen;
+
+        // Per-layer rotation angles (in radians)
+        private readonly Dictionary<IDrawableLayer, double> _layerAngles = new();
 
         public static readonly StyledProperty<double> RotationProperty =
             AvaloniaProperty.Register<DrawingSurface, double>(nameof(Rotation), 0d);
@@ -93,6 +111,15 @@ namespace AvaloniaMvvmDraw.Views
                 (s, e) => OnPointerWheelChanged(e),
                 RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
                 handledEventsToo: true);
+        }
+
+        public void ToggleTransformMode()
+        {
+            _isTransformMode = !_isTransformMode;
+            _activeHandle = Handle.None;
+            Cursor = _isTransformMode ? new Cursor(StandardCursorType.Cross) : Cursor;
+            InvalidateVisual();
+            Log.Information("Transform mode: {State}", _isTransformMode);
         }
 
         private void UpdateLayerBorders()
@@ -202,7 +229,23 @@ namespace AvaloniaMvvmDraw.Views
                     foreach (var layer in Layers)
                     {
                         layer.Size = surfaceSize;
-                        layer.Draw(context);
+                        // Apply per-layer rotation
+                        if (layer is IMovableRectLayer m && _layerAngles.TryGetValue(layer, out var a) && Math.Abs(a) > Epsilon)
+                        {
+                            var rc = m.Rect;
+                            var c = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
+                            var mtx = Matrix.CreateTranslation(new Vector(-c.X, -c.Y)) *
+                                      Matrix.CreateRotation(a) *
+                                      Matrix.CreateTranslation(new Vector(c.X, c.Y));
+                            using (context.PushTransform(mtx))
+                            {
+                                layer.Draw(context);
+                            }
+                        }
+                        else
+                        {
+                            layer.Draw(context);
+                        }
                     }
                 }
             }
@@ -211,26 +254,96 @@ namespace AvaloniaMvvmDraw.Views
 
         private void DrawOverlay(DrawingContext context)
         {
-            if (!_hasPointerPos) return;
-            var world = ScreenToWorld(_lastPointerPos);
-            var scale = GetCurrentScale();
-            var text = $"World: {world.X:0.##}, {world.Y:0.##}  Zoom: {scale * 100:0.#}%  Rot: {Rotation:0.#}°";
-            var formatted = new FormattedText(
-                text,
-                CultureInfo.CurrentUICulture,
-                FlowDirection.LeftToRight,
-                new Typeface("Segoe UI"),
-                12,
-                Brushes.White);
-            var padding = new Thickness(6, 4, 6, 4);
-            var size = new Size(formatted.Width + padding.Left + padding.Right,
-                                 formatted.Height + padding.Top + padding.Bottom);
-            var origin = new Point(8, Bounds.Height - size.Height - 8);
-            var rect = new Rect(origin, size);
-            context.FillRectangle(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), rect, 4);
-            context.DrawText(formatted, origin + new Point(padding.Left, padding.Top));
-            context.DrawLine(new Pen(Brushes.Yellow, 1), _lastPointerPos + new Vector(-5, 0), _lastPointerPos + new Vector(5, 0));
-            context.DrawLine(new Pen(Brushes.Yellow, 1), _lastPointerPos + new Vector(0, -5), _lastPointerPos + new Vector(0, 5));
+            // Overlay with info
+            if (_hasPointerPos)
+            {
+                var world = ScreenToWorld(_lastPointerPos);
+                var scale = GetCurrentScale();
+                var text = $"World: {world.X:0.##}, {world.Y:0.##}  Zoom: {scale * 100:0.#}%  Rot: {Rotation:0.#}°";
+                var formatted = new FormattedText(
+                    text,
+                    CultureInfo.CurrentUICulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    12,
+                    Brushes.White);
+                var padding = new Thickness(6, 4, 6, 4);
+                var size = new Size(formatted.Width + padding.Left + padding.Right,
+                                     formatted.Height + padding.Top + padding.Bottom);
+                var origin = new Point(8, Bounds.Height - size.Height - 8);
+                var rect = new Rect(origin, size);
+                context.FillRectangle(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), rect, 4);
+                context.DrawText(formatted, origin + new Point(padding.Left, padding.Top));
+                context.DrawLine(new Pen(Brushes.Yellow, 1), _lastPointerPos + new Vector(-5, 0), _lastPointerPos + new Vector(5, 0));
+                context.DrawLine(new Pen(Brushes.Yellow, 1), _lastPointerPos + new Vector(0, -5), _lastPointerPos + new Vector(0, 5));
+            }
+
+            // Draw transform handles if enabled
+            if (_isTransformMode && SelectedDrawableLayer is IMovableRectLayer sel)
+            {
+                DrawTransformGizmo(context, sel);
+            }
+        }
+
+        private void DrawTransformGizmo(DrawingContext context, IMovableRectLayer sel)
+        {
+            var rc = sel.Rect;
+            var angle = GetLayerAngle(SelectedDrawableLayer!);
+            // Get 4 corners in world space then to screen
+            var corners = GetRotatedCorners(rc, angle);
+            var cornersScreen = new Point[4];
+            for (int i = 0; i < 4; i++)
+                cornersScreen[i] = WorldToScreen(corners[i]);
+
+            // Outline
+            var pen = new Pen(Brushes.Lime, 1);
+            for (int i = 0; i < 4; i++)
+                context.DrawLine(pen, cornersScreen[i], cornersScreen[(i + 1) % 4]);
+
+            // Handles (corners for rotate, edges for resize)
+            const double hs = 5;
+            void DrawHandle(Point p, IBrush fill) => context.FillRectangle(fill, new Rect(p.X - hs, p.Y - hs, hs * 2, hs * 2));
+            DrawHandle(cornersScreen[0], Brushes.OrangeRed); // TL rotate
+            DrawHandle(cornersScreen[1], Brushes.OrangeRed); // TR rotate
+            DrawHandle(cornersScreen[2], Brushes.OrangeRed); // BR rotate
+            DrawHandle(cornersScreen[3], Brushes.OrangeRed); // BL rotate
+            DrawHandle(Mid(cornersScreen[0], cornersScreen[1]), Brushes.DodgerBlue); // top resize
+            DrawHandle(Mid(cornersScreen[1], cornersScreen[2]), Brushes.DodgerBlue); // right resize
+            DrawHandle(Mid(cornersScreen[2], cornersScreen[3]), Brushes.DodgerBlue); // bottom resize
+            DrawHandle(Mid(cornersScreen[3], cornersScreen[0]), Brushes.DodgerBlue); // left resize
+        }
+
+        private static Point Mid(Point a, Point b) => new Point((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+
+        private Point[] GetRotatedCorners(Rect rc, double angleRad)
+        {
+            var c = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
+            var pts = new[]
+            {
+                new Point(rc.X, rc.Y),
+                new Point(rc.X + rc.Width, rc.Y),
+                new Point(rc.X + rc.Width, rc.Y + rc.Height),
+                new Point(rc.X, rc.Y + rc.Height)
+            };
+            for (int i = 0; i < pts.Length; i++)
+                pts[i] = RotatePoint(pts[i], c, angleRad);
+            return pts;
+        }
+
+        private static Point RotatePoint(Point p, Point center, double angleRad)
+        {
+            var s = Math.Sin(angleRad);
+            var c = Math.Cos(angleRad);
+            var dx = p.X - center.X;
+            var dy = p.Y - center.Y;
+            var x = dx * c - dy * s + center.X;
+            var y = dx * s + dy * c + center.Y;
+            return new Point(x, y);
+        }
+
+        private double GetLayerAngle(IDrawableLayer layer)
+        {
+            return _layerAngles.TryGetValue(layer, out var a) ? a : 0.0;
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -242,8 +355,15 @@ namespace AvaloniaMvvmDraw.Views
                 var includeRotation = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
                 ResetView(includeRotation);
                 e.Handled = true;
+                return;
             }
-            else if (e.Key == Key.Add || (e.Key == Key.OemPlus && e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+            if (e.Key == Key.T && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                ToggleTransformMode();
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.Add || (e.Key == Key.OemPlus && e.KeyModifiers.HasFlag(KeyModifiers.Control)))
             {
                 ZoomAtCenter(ZoomStepUp);
                 e.Handled = true;
@@ -261,10 +381,11 @@ namespace AvaloniaMvvmDraw.Views
             ApplyZoom(center, factor);
         }
 
-        private void ResetView(bool includeRotation)
+        public void ResetView(bool includeRotation)
         {
             _transform = Matrix.Identity;
-            if (includeRotation) Rotation = 0;
+            if (includeRotation)
+                Rotation = 0;
             InvalidateVisual();
             Log.Information("View reset (rotation reset: {IncludeRotation})", includeRotation);
         }
@@ -274,7 +395,8 @@ namespace AvaloniaMvvmDraw.Views
             var currentScale = GetCurrentScale();
             var targetScale = currentScale * requestedFactor;
             targetScale = Math.Clamp(targetScale, MinZoom, MaxZoom);
-            if (Math.Abs(targetScale - currentScale) < Epsilon) return;
+            if (Math.Abs(targetScale - currentScale) < Epsilon)
+                return; // no effective change
             var actualFactor = targetScale / currentScale;
             var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
             var angle = Rotation * Math.PI / 180.0;
@@ -297,6 +419,22 @@ namespace AvaloniaMvvmDraw.Views
         {
             base.OnPointerPressed(e);
             var point = e.GetCurrentPoint(this);
+
+            if (_isTransformMode && SelectedDrawableLayer is IMovableRectLayer sel && point.Properties.IsLeftButtonPressed)
+            {
+                var handle = HitTestHandle(sel, point.Position);
+                if (handle != Handle.None)
+                {
+                    _activeHandle = handle;
+                    _transformStartRect = sel.Rect;
+                    _transformStartAngle = GetLayerAngle(SelectedDrawableLayer!);
+                    _transformStartPointerScreen = point.Position;
+                    e.Pointer.Capture(this);
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             if (!_isMovingLastLayer && point.Properties.IsLeftButtonPressed)
             {
                 var world = ScreenToWorld(point.Position);
@@ -311,6 +449,7 @@ namespace AvaloniaMvvmDraw.Views
                     }
                 }
             }
+
             if (_isMovingLastLayer && point.Properties.IsLeftButtonPressed)
             {
                 _movingLayer = SelectedDrawableLayer as IMovableRectLayer;
@@ -321,6 +460,7 @@ namespace AvaloniaMvvmDraw.Views
                 e.Handled = true;
                 return;
             }
+
             if (point.Properties.IsMiddleButtonPressed)
             {
                 _isPanning = true;
@@ -330,62 +470,42 @@ namespace AvaloniaMvvmDraw.Views
             }
         }
 
-        protected override void OnPointerMoved(PointerEventArgs e)
+        private Handle HitTestHandle(IMovableRectLayer sel, Point screen)
         {
-            base.OnPointerMoved(e);
-            _lastPointerPos = e.GetPosition(this);
-            _hasPointerPos = true;
-            if (_isMovingLastLayer && _movingLayer is not null && e.Pointer.Captured == this)
-            {
-                var pos = e.GetPosition(this);
-                var deltaScreen = pos - _layerDragStartPointer;
-                var scale = GetCurrentScale();
-                if (scale <= 0) scale = 1;
-                var angle = Rotation * Math.PI / 180.0;
-                var cos = Math.Cos(angle);
-                var sin = Math.Sin(angle);
-                var dx = deltaScreen.X / scale;
-                var dy = deltaScreen.Y / scale;
-                var worldDx = dx * cos + dy * sin;
-                var worldDy = -dx * sin + dy * cos;
-                _movingLayer.Rect = new Rect(
-                    _layerDragStartRect.X + worldDx,
-                    _layerDragStartRect.Y + worldDy,
-                    _layerDragStartRect.Width,
-                    _layerDragStartRect.Height);
-                InvalidateVisual();
-                e.Handled = true;
-                return;
-            }
-            if (_isPanning && e.Pointer.Captured == this)
-            {
-                var currentPoint = e.GetPosition(this);
-                var delta = currentPoint - _lastPanPoint;
-                if (delta != default)
-                {
-                    _transform = Matrix.CreateTranslation(new Vector(delta.X, delta.Y)) * _transform;
-                    _lastPanPoint = currentPoint;
-                    InvalidateVisual();
-                }
-                e.Handled = true;
-                return;
-            }
-            InvalidateVisual();
+            const double hs = 7; // hit size in pixels
+            var angle = GetLayerAngle(SelectedDrawableLayer!);
+            var rc = sel.Rect;
+            var corners = GetRotatedCorners(rc, angle);
+            var cScreen = new Point[4];
+            for (int i = 0; i < 4; i++) cScreen[i] = WorldToScreen(corners[i]);
+            // corners rotation handles
+            if (Near(cScreen[0], screen, hs)) return Handle.RotateTL;
+            if (Near(cScreen[1], screen, hs)) return Handle.RotateTR;
+            if (Near(cScreen[2], screen, hs)) return Handle.RotateBR;
+            if (Near(cScreen[3], screen, hs)) return Handle.RotateBL;
+            // edges resize
+            if (Near(Mid(cScreen[0], cScreen[1]), screen, hs)) return Handle.ResizeTop;
+            if (Near(Mid(cScreen[1], cScreen[2]), screen, hs)) return Handle.ResizeRight;
+            if (Near(Mid(cScreen[2], cScreen[3]), screen, hs)) return Handle.ResizeBottom;
+            if (Near(Mid(cScreen[3], cScreen[0]), screen, hs)) return Handle.ResizeLeft;
+            // inside for move
+            if (PointInRotatedRect(screen, rc, angle)) return Handle.Move;
+            return Handle.None;
         }
 
-        protected override void OnPointerEntered(PointerEventArgs e)
+        private bool PointInRotatedRect(Point screen, Rect rc, double angleRad)
         {
-            base.OnPointerEntered(e);
-            _hasPointerPos = true;
-            _lastPointerPos = e.GetPosition(this);
-            InvalidateVisual();
+            // Convert screen -> world, then unrotate around rect center, then rect.Contains
+            var world = ScreenToWorld(screen);
+            var c = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
+            var unrot = RotatePoint(world, c, -angleRad);
+            return rc.Contains(unrot);
         }
 
-        protected override void OnPointerExited(PointerEventArgs e)
+        private static bool Near(Point a, Point b, double radius)
         {
-            base.OnPointerExited(e);
-            _hasPointerPos = false;
-            InvalidateVisual();
+            var dx = a.X - b.X; var dy = a.Y - b.Y;
+            return (dx * dx + dy * dy) <= radius * radius;
         }
 
         private double GetCurrentScale()
@@ -403,13 +523,130 @@ namespace AvaloniaMvvmDraw.Views
                            Matrix.CreateRotation(angleRad) *
                            Matrix.CreateTranslation(new Vector(center.X, center.Y));
             var composite = rotation * _transform;
-            if (composite.TryInvert(out var inv)) return inv.Transform(screen);
+            if (composite.TryInvert(out var inv))
+                return inv.Transform(screen);
             return screen;
+        }
+
+        private Point WorldToScreen(Point world)
+        {
+            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
+            var angleRad = Rotation * Math.PI / 180.0;
+            var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
+                           Matrix.CreateRotation(angleRad) *
+                           Matrix.CreateTranslation(new Vector(center.X, center.Y));
+            var composite = rotation * _transform;
+            return composite.Transform(world);
+        }
+
+        protected override void OnPointerMoved(PointerEventArgs e)
+        {
+            base.OnPointerMoved(e);
+            _lastPointerPos = e.GetPosition(this);
+            _hasPointerPos = true;
+
+            if (_isTransformMode && SelectedDrawableLayer is IMovableRectLayer sel && e.Pointer.Captured == this && _activeHandle != Handle.None)
+            {
+                var currentScreen = e.GetPosition(this);
+                var deltaScreen = currentScreen - _transformStartPointerScreen;
+
+                var scale = GetCurrentScale(); if (scale <= 0) scale = 1;
+                var ang = Rotation * Math.PI / 180.0;
+                var cos = Math.Cos(ang); var sin = Math.Sin(ang);
+                var dx = deltaScreen.X / scale; var dy = deltaScreen.Y / scale;
+                var worldDx = dx * cos + dy * sin;
+                var worldDy = -dx * sin + dy * cos;
+
+                if (_activeHandle == Handle.Move)
+                {
+                    sel.Rect = new Rect(_transformStartRect.X + worldDx, _transformStartRect.Y + worldDy, _transformStartRect.Width, _transformStartRect.Height);
+                }
+                else if (_activeHandle == Handle.ResizeLeft || _activeHandle == Handle.ResizeRight || _activeHandle == Handle.ResizeTop || _activeHandle == Handle.ResizeBottom)
+                {
+                    var rc0 = _transformStartRect;
+                    var center = new Point(rc0.X + rc0.Width / 2, rc0.Y + rc0.Height / 2);
+                    var pointerWorld = ScreenToWorld(currentScreen);
+                    var local = RotatePoint(pointerWorld, center, -_transformStartAngle);
+                    double minSize = 5;
+                    double left = rc0.Left, right = rc0.Right, top = rc0.Top, bottom = rc0.Bottom;
+                    if (_activeHandle == Handle.ResizeLeft)
+                        left = Math.Min(local.X, right - minSize);
+                    else if (_activeHandle == Handle.ResizeRight)
+                        right = Math.Max(local.X, left + minSize);
+                    else if (_activeHandle == Handle.ResizeTop)
+                        top = Math.Min(local.Y, bottom - minSize);
+                    else if (_activeHandle == Handle.ResizeBottom)
+                        bottom = Math.Max(local.Y, top + minSize);
+                    sel.Rect = new Rect(left, top, Math.Max(minSize, right - left), Math.Max(minSize, bottom - top));
+                }
+                else
+                {
+                    var rc0 = _transformStartRect;
+                    var center = new Point(rc0.X + rc0.Width / 2, rc0.Y + rc0.Height / 2);
+                    var startVec = _transformStartPointerScreen - WorldToScreen(center);
+                    var currVec = currentScreen - WorldToScreen(center);
+                    var startAng = Math.Atan2(startVec.Y, startVec.X);
+                    var currAng = Math.Atan2(currVec.Y, currVec.X);
+                    var deltaAng = currAng - startAng;
+                    _layerAngles[SelectedDrawableLayer!] = _transformStartAngle + deltaAng;
+                }
+
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
+            if (_isMovingLastLayer && _movingLayer is not null && e.Pointer.Captured == this)
+            {
+                var pos = e.GetPosition(this);
+                var deltaScreen = pos - _layerDragStartPointer;
+                var scale = GetCurrentScale();
+                if (scale <= 0) scale = 1;
+                var angle = Rotation * Math.PI / 180.0;
+                var cos = Math.Cos(angle);
+                var sin = Math.Sin(angle);
+                var dx2 = deltaScreen.X / scale;
+                var dy2 = deltaScreen.Y / scale;
+                var worldDx2 = dx2 * cos + dy2 * sin;
+                var worldDy2 = -dx2 * sin + dy2 * cos;
+                _movingLayer.Rect = new Rect(
+                    _layerDragStartRect.X + worldDx2,
+                    _layerDragStartRect.Y + worldDy2,
+                    _layerDragStartRect.Width,
+                    _layerDragStartRect.Height);
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
+            if (_isPanning && e.Pointer.Captured == this)
+            {
+                var currentPoint = e.GetPosition(this);
+                var delta = currentPoint - _lastPanPoint;
+                if (delta != default)
+                {
+                    _transform = Matrix.CreateTranslation(new Vector(delta.X, delta.Y)) * _transform;
+                    _lastPanPoint = currentPoint;
+                    InvalidateVisual();
+                }
+                e.Handled = true;
+                return;
+            }
+
+            InvalidateVisual();
         }
 
         protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
             base.OnPointerReleased(e);
+            if (_isTransformMode && _activeHandle != Handle.None && e.Pointer.Captured == this)
+            {
+                _activeHandle = Handle.None;
+                e.Pointer.Capture(null);
+                e.Handled = true;
+                InvalidateVisual();
+                return;
+            }
             if (_isMovingLastLayer && e.Pointer.Captured == this)
             {
                 e.Pointer.Capture(null);
@@ -430,6 +667,7 @@ namespace AvaloniaMvvmDraw.Views
             base.OnPointerCaptureLost(e);
             _isPanning = false;
             if (_isMovingLastLayer) _movingLayer = null;
+            _activeHandle = Handle.None;
         }
 
         protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

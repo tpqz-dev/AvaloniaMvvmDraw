@@ -3,7 +3,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia;
 using System;
-using AvaloniaMvvmDraw.Views;
 using Serilog;
 
 namespace AvaloniaMvvmDraw.Views
@@ -27,17 +26,32 @@ namespace AvaloniaMvvmDraw.Views
             DragDrop.SetAllowDrop(layersList, true);
         }
 
-        private async void AboutMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void ResetViewButton_Click(object? sender, RoutedEventArgs e)
+        {
+            // Same as Ctrl+Shift+0: reset pan+zoom+rotation
+            drawingSurface.Focus();
+            drawingSurface.ResetView(true);
+            Log.Information("Reset view by button click");
+        }
+
+        private async void AboutMenu_Click(object? sender, RoutedEventArgs e)
         {
             var aboutWindow = new AboutSmallWindow();
             await aboutWindow.ShowDialog(this);
             Log.Information("About menu");
         }
 
-        private void ExitMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void ExitMenu_Click(object? sender, RoutedEventArgs e)
         {
             Log.Information("Exit menu");
             Close();
+        }
+
+        private void ToggleTransformButton_Click(object? sender, RoutedEventArgs e)
+        {
+            drawingSurface.ToggleTransformMode();
+            drawingSurface.Focus();
+            Log.Information("Transform mode toggled from Tools panel");
         }
     }
 }

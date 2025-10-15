@@ -20,9 +20,16 @@
       
       <!-- Panneau flottant déplaçable -->
       <Border DockPanel.Dock="Top" Height="32" Background="LightGray">
-        <Grid ColumnDefinitions="Auto,*" Margin="8,0">
-          <TextBlock Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <Grid ColumnDefinitions="Auto,Auto,*" Margin="8,0">
+          <Button x:Name="resetViewButton"
+                  Grid.Column="0"
+                  Content="Reset"
+                  Margin="0,0,8,0"
+                  VerticalAlignment="Center"
+                  Click="ResetViewButton_Click"/>
+          <TextBlock Grid.Column="1" Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="rotation"
+                  Grid.Column="2"
                   Minimum="0" Maximum="360"
                   TickFrequency="15"
                   VerticalAlignment="Center"
@@ -41,7 +48,7 @@
 
     <!-- Panneau flottant déplaçable -->
     <Border x:Name="floatingPanel"
-            Width="100" Height="350"
+            Width="140" Height="350"
             BorderBrush="Black" BorderThickness="1"
             Background="#CCFFFFFF">
       <Border.RenderTransform>
@@ -62,7 +69,10 @@
                      Text="Tools"/>
         </Border>
 
-        <StackPanel Grid.Row="1" Margin="8">
+        <StackPanel Grid.Row="1" Margin="8" Spacing="6">
+          <Button x:Name="transformButton"
+                  Content="Transform (Ctrl+T)"
+                  Click="ToggleTransformButton_Click"/>
           <Button x:Name="moveButton"
                   Width="28" Height="28"
                   Background="Transparent"
@@ -74,7 +84,6 @@
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"/>
           </Button>
-
         </StackPanel>
       </Grid>
     </Border>
