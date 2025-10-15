@@ -70,9 +70,36 @@
         </Border>
 
         <StackPanel Grid.Row="1" Margin="8" Spacing="6">
+          <!-- Transform icon button -->
           <Button x:Name="transformButton"
-                  Content="Transform (Ctrl+T)"
-                  Click="ToggleTransformButton_Click"/>
+                  Width="28" Height="28"
+                  Background="Transparent" BorderBrush="Transparent"
+                  ToolTip.Tip="Transform (Ctrl+T)"
+                  Click="ToggleTransformButton_Click">
+            <Viewbox Stretch="Uniform">
+              <Canvas Width="24" Height="24">
+                <!-- bounding box -->
+                <Rectangle Width="12" Height="12" Stroke="#666" StrokeThickness="1" Canvas.Left="6" Canvas.Top="6"/>
+                <!-- edge handles (squares) -->
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="9.5" Canvas.Top="4.5"/>
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="16.5" Canvas.Top="9.5"/>
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="9.5" Canvas.Top="16.5"/>
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="4.5" Canvas.Top="9.5"/>
+                <!-- corner handles (squares) -->
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="4.5" Canvas.Top="4.5"/>
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="16.5" Canvas.Top="4.5"/>
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="16.5" Canvas.Top="16.5"/>
+                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="4.5" Canvas.Top="16.5"/>
+                <!-- rotation handles (circles) offset outward -->
+                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="1.5" Canvas.Top="1.5"/>
+                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="18.5" Canvas.Top="1.5"/>
+                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="18.5" Canvas.Top="18.5"/>
+                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="1.5" Canvas.Top="18.5"/>
+              </Canvas>
+            </Viewbox>
+          </Button>
+
+          <!-- Existing move button -->
           <Button x:Name="moveButton"
                   Width="28" Height="28"
                   Background="Transparent"

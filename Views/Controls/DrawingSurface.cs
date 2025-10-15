@@ -44,6 +44,7 @@ namespace AvaloniaMvvmDraw.Views
 
         // Transform mode (per-layer)
         private bool _isTransformMode;
+        public bool IsTransformMode => _isTransformMode;
         private enum Handle
         {
             None,
@@ -117,13 +118,15 @@ namespace AvaloniaMvvmDraw.Views
                 handledEventsToo: true);
         }
 
-        public void ToggleTransformMode()
+        public void ToggleTransformMode() => SetTransformMode(!_isTransformMode);
+        public void SetTransformMode(bool enabled)
         {
-            _isTransformMode = !_isTransformMode;
+            if (_isTransformMode == enabled) return;
+            _isTransformMode = enabled;
             _activeHandle = Handle.None;
-            Cursor = _isTransformMode ? new Cursor(StandardCursorType.Cross) : Cursor;
+            Cursor = enabled ? new Cursor(StandardCursorType.Cross) : null;
             InvalidateVisual();
-            Log.Information("Transform mode: {State}", _isTransformMode);
+            Log.Information("Transform mode set to {State}", enabled);
         }
 
         private void UpdateLayerBorders()
@@ -611,62 +614,81 @@ namespace AvaloniaMvvmDraw.Views
                     var center = new Point(rc0.X + rc0.Width / 2, rc0.Y + rc0.Height / 2);
                     var pointerWorld = ScreenToWorld(currentScreen);
                     var local = RotatePoint(pointerWorld, center, -_transformStartAngle);
-                    double minSize = 5;
-                    double left = rc0.Left, right = rc0.Right, top = rc0.Top, bottom = rc0.Bottom;
-                    bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
-                    double ar = rc0.Width > 0 ? rc0.Width / rc0.Height : 1.0;
+                    // local is in unrotated world; compute offset from center
+                    var lx = local.X - center.X;
+                    var ly = local.Y - center.Y;
 
-                    void CornerResize(bool leftSide, bool topSide)
-                    {
-                        if (!shift)
-                        {
-                            if (leftSide) left = Math.Min(local.X, right - minSize); else right = Math.Max(local.X, left + minSize);
-                            if (topSide) top = Math.Min(local.Y, bottom - minSize); else bottom = Math.Max(local.Y, top + minSize);
-                        }
-                        else
-                        {
-                            // proportional: keep opposite corner fixed
-                            double targetW = Math.Abs((right - (leftSide ? local.X : left)));
-                            double targetH = Math.Abs((bottom - (topSide ? local.Y : top)));
-                            // compute scale to preserve aspect ratio
-                            double s = Math.Max(targetW / rc0.Width, targetH / rc0.Height);
-                            s = Math.Max(s, minSize / Math.Min(rc0.Width, rc0.Height));
-                            double newW = rc0.Width * s;
-                            double newH = rc0.Height * s;
-                            if (leftSide) left = right - newW; else right = left + newW;
-                            if (topSide) top = bottom - newH; else bottom = top + newH;
-                        }
-                    }
+                    double minSize = 1; // px
+                    double minHalf = minSize / 2.0;
+                    double hw0 = Math.Max(minHalf, rc0.Width / 2.0);
+                    double hh0 = Math.Max(minHalf, rc0.Height / 2.0);
+                    double hw = hw0, hh = hh0;
+                    bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
                     switch (_activeHandle)
                     {
                         case Handle.ResizeLeft:
-                            left = Math.Min(local.X, right - minSize);
-                            break;
                         case Handle.ResizeRight:
-                            right = Math.Max(local.X, left + minSize);
+                        {
+                            double targetHW = Math.Max(minHalf, Math.Abs(lx));
+                            if (shift)
+                            {
+                                double s = targetHW / hw0;
+                                hw = Math.Max(minHalf, hw0 * s);
+                                hh = Math.Max(minHalf, hh0 * s);
+                            }
+                            else
+                            {
+                                hw = targetHW;
+                                hh = hh0;
+                            }
                             break;
+                        }
                         case Handle.ResizeTop:
-                            top = Math.Min(local.Y, bottom - minSize);
-                            break;
                         case Handle.ResizeBottom:
-                            bottom = Math.Max(local.Y, top + minSize);
+                        {
+                            double targetHH = Math.Max(minHalf, Math.Abs(ly));
+                            if (shift)
+                            {
+                                double s = targetHH / hh0;
+                                hw = Math.Max(minHalf, hw0 * s);
+                                hh = Math.Max(minHalf, hh0 * s);
+                            }
+                            else
+                            {
+                                hw = hw0;
+                                hh = targetHH;
+                            }
                             break;
+                        }
                         case Handle.ResizeTL:
-                            CornerResize(leftSide: true, topSide: true);
-                            break;
                         case Handle.ResizeTR:
-                            CornerResize(leftSide: false, topSide: true);
-                            break;
                         case Handle.ResizeBR:
-                            CornerResize(leftSide: false, topSide: false);
-                            break;
                         case Handle.ResizeBL:
-                            CornerResize(leftSide: true, topSide: false);
+                        {
+                            double targetHW = Math.Max(minHalf, Math.Abs(lx));
+                            double targetHH = Math.Max(minHalf, Math.Abs(ly));
+                            if (shift)
+                            {
+                                // proportional scaling around center; choose min when shrinking, max when enlarging
+                                double sx = targetHW / hw0;
+                                double sy = targetHH / hh0;
+                                bool shrinking = sx <= 1 && sy <= 1;
+                                double s = shrinking ? Math.Min(sx, sy) : Math.Max(sx, sy);
+                                hw = Math.Max(minHalf, hw0 * s);
+                                hh = Math.Max(minHalf, hh0 * s);
+                            }
+                            else
+                            {
+                                hw = targetHW;
+                                hh = targetHH;
+                            }
                             break;
+                        }
                     }
 
-                    sel.Rect = new Rect(left, top, Math.Max(minSize, right - left), Math.Max(minSize, bottom - top));
+                    // Rebuild rect centered on center with new half sizes
+                    sel.Rect = new Rect(center.X - hw, center.Y - hh, hw * 2.0, hh * 2.0);
                 }
                 else // rotate
                 {

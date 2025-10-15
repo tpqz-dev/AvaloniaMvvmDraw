@@ -15,23 +15,21 @@ namespace AvaloniaMvvmDraw.Views
         {
             var surface = this.FindControl<DrawingSurface>("drawingSurface");
             var icon = this.FindControl<Image>("moveButtonIcon");
+            if (surface is null || icon is null) return;
 
-            if (surface is null || icon is null)
-                return;
+            // Disable transform mode when enabling move
+            surface.SetTransformMode(false);
 
             _isMoveMode = !_isMoveMode;
-
-            //if (_isMoveMode)
-            //{
+            if (_isMoveMode)
+            {
                 surface.BeginMoveLastLayer();
-                icon.Source = new Bitmap(AssetLoader.Open(new Uri(MoveIconUri)));
-            //}
-            //else
-            //{
-            //    surface.CancelMoveMode();
-            //    // Pas d'ArrowIconUri : on garde la même icône
-            //    icon.Source = new Bitmap(AssetLoader.Open(new Uri(MoveIconUri)));
-            //}
+            }
+            else
+            {
+                surface.CancelMoveMode();
+            }
+            icon.Source = new Bitmap(AssetLoader.Open(new Uri(MoveIconUri)));
         }
     }
 }

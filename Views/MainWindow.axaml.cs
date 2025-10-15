@@ -49,6 +49,8 @@ namespace AvaloniaMvvmDraw.Views
 
         private void ToggleTransformButton_Click(object? sender, RoutedEventArgs e)
         {
+            // Turn off move mode when toggling transform
+            drawingSurface.CancelMoveMode();
             drawingSurface.ToggleTransformMode();
             drawingSurface.Focus();
             Log.Information("Transform mode toggled from Tools panel");
