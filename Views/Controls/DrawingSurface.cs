@@ -3,16 +3,13 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using AvaloniaMvvmDraw.Views.Interfaces;
+using AvaloniaMvvmDraw.Views.Models;
 using Serilog;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
-using Avalonia.Platform.Storage;
-using Avalonia.Media.Imaging;
-using AvaloniaMvvmDraw.Views.Interfaces;
-using AvaloniaMvvmDraw.Views.Models;
 
 namespace AvaloniaMvvmDraw.Views
 {
@@ -21,23 +18,26 @@ namespace AvaloniaMvvmDraw.Views
         private Matrix _transform = Matrix.Identity;
         private Point _lastPanPoint;
         private bool _isPanning;
-        private double zoomFactor;
+        private double zoomFactor; // last step factor (for logging only)
         private EventHandler<PointerWheelEventArgs>? _topLevelWheelHandler;
-        public ObservableCollection<IDrawableLayer> Layers { get; } = new ();
+        public ObservableCollection<IDrawableLayer> Layers { get; } = new();
 
         private static readonly IPen RedLayerBorder = new Pen(Brushes.Red, 1);
         private static readonly IPen YellowLayerBorder = new Pen(Brushes.Yellow, 1);
 
-        // Numéroteur d'ordre d'insertion des calques
-        private int _nextLayerNumber = 1;
+        private const double MinZoom = 0.05;   // 5%
+        private const double MaxZoom = 20.0;   // 2000%
+        private const double ZoomStepUp = 1.1; // wheel / keyboard increment factors
+        private const double ZoomStepDown = 0.9;
+        private const double Epsilon = 1e-6;
 
-        // Mode déplacement du dernier calque
+        private int _nextLayerNumber = 1; // insertion order counter
+
         private bool _isMovingLastLayer;
         private IMovableRectLayer? _movingLayer;
         private Point _layerDragStartPointer;
         private Rect _layerDragStartRect;
 
-        // Suivi position souris
         private Point _lastPointerPos;
         private bool _hasPointerPos;
 
@@ -50,7 +50,6 @@ namespace AvaloniaMvvmDraw.Views
             set => SetValue(RotationProperty, value);
         }
 
-        // Ajoutez cette propriété pour exposer Background
         public IBrush? Background
         {
             get => (IBrush?)GetValue(BackgroundProperty);
@@ -62,7 +61,6 @@ namespace AvaloniaMvvmDraw.Views
             set => SetValue(SelectedDrawableLayerProperty, value);
         }
 
-
         public static readonly StyledProperty<IBrush?> BackgroundProperty =
             AvaloniaProperty.Register<DrawingSurface, IBrush?>(nameof(Background));
 
@@ -71,14 +69,13 @@ namespace AvaloniaMvvmDraw.Views
 
         static DrawingSurface()
         {
-            RotationProperty.Changed.AddClassHandler<DrawingSurface>((x, e) =>
+            RotationProperty.Changed.AddClassHandler<DrawingSurface>((x, _) =>
             {
                 x.InvalidateVisual();
                 Log.Information("Rotation changed: {Rotation}°", x.Rotation);
             });
 
-            // Met à jour les bordures quand la sélection change
-            SelectedDrawableLayerProperty.Changed.AddClassHandler<DrawingSurface>((x, e) =>
+            SelectedDrawableLayerProperty.Changed.AddClassHandler<DrawingSurface>((x, _) =>
             {
                 x.UpdateLayerBorders();
                 x.InvalidateVisual();
@@ -87,23 +84,17 @@ namespace AvaloniaMvvmDraw.Views
 
         public DrawingSurface()
         {
-            // S'assure que le contrôle est ciblable au hit-test
             Background = Brushes.Transparent;
-
-            // Imposer une bordure rouge 1px à tout calque ajouté
+            Focusable = true;
             Layers.CollectionChanged += Layers_CollectionChanged;
-
-            // Ajoute un rectangle 100x100 sur le calque 0 à la position (500, 200)
             Layers.Insert(0, new RectangleLayer(new Rect(500, 200, 100, 100), Brushes.CornflowerBlue, new Pen(Brushes.Black, 1)));
 
-            // Capte la molette même si un parent l’a déjà gérée (ScrollViewer, etc.)
             AddHandler(InputElement.PointerWheelChangedEvent,
                 (s, e) => OnPointerWheelChanged(e),
                 RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
                 handledEventsToo: true);
         }
 
-        // Synchronise la couleur de bordure (jaune si sélectionné, rouge sinon)
         private void UpdateLayerBorders()
         {
             foreach (var l in Layers)
@@ -117,24 +108,18 @@ namespace AvaloniaMvvmDraw.Views
             }
         }
 
-        // Appelé par le bouton "moveButton"
         public void BeginMoveLastLayer()
         {
             _isMovingLastLayer = false;
             _movingLayer = null;
-
-            // Ne bouger que le dernier layer qui a un Rect
-            // Désormais: le layer sélectionné via le panel 'layer' sera déplacé
             _isMovingLastLayer = true;
             Cursor = new Cursor(StandardCursorType.SizeAll);
-            Focus(); // s'assure de recevoir les événements
-            Focus(); // s'assure de recevoir les événements
-            InvalidateVisual(); // rafraîchit l'affichage du statut
+            Focus();
+            InvalidateVisual();
         }
 
         private void Layers_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            // Applique la bordure aux nouveaux calques et force la sélection
             if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is { Count: > 0 })
             {
                 IDrawableLayer? last = null;
@@ -142,60 +127,39 @@ namespace AvaloniaMvvmDraw.Views
                 {
                     if (item is IBorderedLayer bordered)
                         bordered.BorderPen = RedLayerBorder;
-
                     if (item is IDrawableLayer dl)
                     {
-                        // Ajoute le numéro d'ordre d'insertion au Name
                         dl.Name = string.IsNullOrWhiteSpace(dl.Name)
                             ? $"Layer {_nextLayerNumber}"
                             : $"{dl.Name}{_nextLayerNumber}";
                         _nextLayerNumber++;
-
                         last = dl;
                     }
                 }
-
-                if (last is not null)
-                    SelectedDrawableLayer = last;
-
-                // Après sélection, les bordures seront remises à jour par UpdateLayerBorders()
+                if (last is not null) SelectedDrawableLayer = last;
                 return;
             }
-
-            // Lors d'un chargement/réinitialisation de la collection, sélectionner le dernier calque
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
-                SelectedDrawableLayer = Layers.Count > 0 ? Layers[Layers.Count - 1] : null;
+                SelectedDrawableLayer = Layers.Count > 0 ? Layers[^1] : null;
                 return;
             }
-
-            // Si le calque sélectionné est supprimé, sélectionner le voisin pertinent
             if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems is { Count: > 0 })
             {
                 var removedSelected = false;
                 foreach (var item in e.OldItems)
                     removedSelected |= ReferenceEquals(item, SelectedDrawableLayer);
-
                 if (removedSelected)
                 {
-                    if (Layers.Count > 0)
-                    {
-                        var idx = Math.Min(Math.Max(e.OldStartingIndex, 0), Layers.Count - 1);
-                        SelectedDrawableLayer = Layers[idx];
-                    }
-                    else
-                    {
-                        SelectedDrawableLayer = null;
-                    }
+                    SelectedDrawableLayer = Layers.Count > 0
+                        ? Layers[Math.Min(Math.Max(e.OldStartingIndex, 0), Layers.Count - 1)]
+                        : null;
                 }
-
                 return;
             }
-
-            // Remplacement: sélectionner le nouvel élément ciblé
             if (e.Action == NotifyCollectionChangedAction.Replace && e.NewItems is { Count: > 0 })
             {
-                SelectedDrawableLayer = e.NewItems[e.NewItems.Count - 1] as IDrawableLayer;
+                SelectedDrawableLayer = e.NewItems[^1] as IDrawableLayer;
             }
         }
 
@@ -203,21 +167,14 @@ namespace AvaloniaMvvmDraw.Views
         {
             base.OnAttachedToVisualTree(e);
             var tl = TopLevel.GetTopLevel(this);
-            _topLevelWheelHandler ??= (s, args) =>
+            _topLevelWheelHandler ??= (_, args) =>
             {
-                // Utilise un test géométrique plutôt que IsPointerOver (ignore le hit-test)
                 var pos = args.GetPosition(this);
                 if (pos.X >= 0 && pos.Y >= 0 && pos.X <= Bounds.Width && pos.Y <= Bounds.Height)
-                {   
                     OnPointerWheelChanged(args);
-                }
             };
-            tl?.AddHandler(
-                InputElement.PointerWheelChangedEvent,
-                _topLevelWheelHandler,
-                RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
-                handledEventsToo: true
-            );
+            tl?.AddHandler(InputElement.PointerWheelChangedEvent, _topLevelWheelHandler,
+                RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
         }
 
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -231,133 +188,188 @@ namespace AvaloniaMvvmDraw.Views
         public override void Render(DrawingContext context)
         {
             base.Render(context);
-
-            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
-            var angleRad = Rotation * Math.PI / 180.0;
-            var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
-                           Matrix.CreateRotation(angleRad) *
-                           Matrix.CreateTranslation(new Vector(center.X, center.Y));
-
-            // Taille de référence = taille de la fenêtre principale (fallback: taille du contrôle)
-            var tl = TopLevel.GetTopLevel(this);
-            var surfaceSize = tl?.ClientSize ?? Bounds.Size;
-
-            using (context.PushTransform(rotation * _transform))
+            using (context.PushClip(new Rect(Bounds.Size)))
             {
-                foreach (var layer in Layers)
+                var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
+                var angleRad = Rotation * Math.PI / 180.0;
+                var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
+                               Matrix.CreateRotation(angleRad) *
+                               Matrix.CreateTranslation(new Vector(center.X, center.Y));
+                var tl = TopLevel.GetTopLevel(this);
+                var surfaceSize = tl?.ClientSize ?? Bounds.Size;
+                using (context.PushTransform(rotation * _transform))
                 {
-                    layer.Size = surfaceSize; // chaque calque prend la taille de la fenêtre
-                    layer.Draw(context);
+                    foreach (var layer in Layers)
+                    {
+                        layer.Size = surfaceSize;
+                        layer.Draw(context);
+                    }
                 }
             }
+            DrawOverlay(context);
+        }
 
-            if (Matrix.TryDecomposeTransform(_transform, out var dec))
-                zoomFactor = Math.Abs(dec.Scale.X);
-
-            var typeface = new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.SemiBold);
-            var formattedText = new FormattedText(
-                $"Zoom: {zoomFactor:0.00}x | Rotation: {Rotation:0}°",
+        private void DrawOverlay(DrawingContext context)
+        {
+            if (!_hasPointerPos) return;
+            var world = ScreenToWorld(_lastPointerPos);
+            var scale = GetCurrentScale();
+            var text = $"World: {world.X:0.##}, {world.Y:0.##}  Zoom: {scale * 100:0.#}%  Rot: {Rotation:0.#}°";
+            var formatted = new FormattedText(
+                text,
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
-                typeface,
-                16,
-                Brushes.Black
-            );
-            context.DrawText(formattedText, new Point(8, 8));
+                new Typeface("Segoe UI"),
+                12,
+                Brushes.White);
+            var padding = new Thickness(6, 4, 6, 4);
+            var size = new Size(formatted.Width + padding.Left + padding.Right,
+                                 formatted.Height + padding.Top + padding.Bottom);
+            var origin = new Point(8, Bounds.Height - size.Height - 8);
+            var rect = new Rect(origin, size);
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)), rect, 4);
+            context.DrawText(formatted, origin + new Point(padding.Left, padding.Top));
+            context.DrawLine(new Pen(Brushes.Yellow, 1), _lastPointerPos + new Vector(-5, 0), _lastPointerPos + new Vector(5, 0));
+            context.DrawLine(new Pen(Brushes.Yellow, 1), _lastPointerPos + new Vector(0, -5), _lastPointerPos + new Vector(0, 5));
+        }
 
-            // Ligne 2: position souris + statut du mode déplacement
-            var mouseStr = _hasPointerPos ? $"{_lastPointerPos.X:0}, {_lastPointerPos.Y:0}" : "—";
-            var moveStr = _isMovingLastLayer ? "Activé" : "Désactivé";
-            var y2 = 8 + formattedText.Height + 4;
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (e.Handled) return;
+            if ((e.Key == Key.D0 || e.Key == Key.NumPad0) && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                var includeRotation = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+                ResetView(includeRotation);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Add || (e.Key == Key.OemPlus && e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+            {
+                ZoomAtCenter(ZoomStepUp);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Subtract || (e.Key == Key.OemMinus && e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+            {
+                ZoomAtCenter(ZoomStepDown);
+                e.Handled = true;
+            }
+        }
 
-            var formattedText2 = new FormattedText(
-                $"Souris: {mouseStr} | Déplacer calque: {moveStr}",
-                CultureInfo.CurrentUICulture,
-                FlowDirection.LeftToRight,
-                typeface,
-                16,
-                Brushes.Black
-            );
-            context.DrawText(formattedText2, new Point(8, y2));
+        private void ZoomAtCenter(double factor)
+        {
+            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
+            ApplyZoom(center, factor);
+        }
+
+        private void ResetView(bool includeRotation)
+        {
+            _transform = Matrix.Identity;
+            if (includeRotation) Rotation = 0;
+            InvalidateVisual();
+            Log.Information("View reset (rotation reset: {IncludeRotation})", includeRotation);
+        }
+
+        private void ApplyZoom(Point pivotScreen, double requestedFactor)
+        {
+            var currentScale = GetCurrentScale();
+            var targetScale = currentScale * requestedFactor;
+            targetScale = Math.Clamp(targetScale, MinZoom, MaxZoom);
+            if (Math.Abs(targetScale - currentScale) < Epsilon) return;
+            var actualFactor = targetScale / currentScale;
+            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
+            var angle = Rotation * Math.PI / 180.0;
+            var dx = pivotScreen.X - center.X;
+            var dy = pivotScreen.Y - center.Y;
+            var cos = Math.Cos(-angle);
+            var sin = Math.Sin(-angle);
+            var localX = dx * cos - dy * sin;
+            var localY = dx * sin + dy * cos;
+            var localPos = new Point(localX + center.X, localY + center.Y);
+            _transform = Matrix.CreateTranslation(new Vector(-localPos.X, -localPos.Y)) *
+                         Matrix.CreateScale(new Vector(actualFactor, actualFactor)) *
+                         Matrix.CreateTranslation(new Vector(localPos.X, localPos.Y)) * _transform;
+            InvalidateVisual();
+            zoomFactor = actualFactor;
+            Log.Information("Zoom applied -> factor {Factor:0.###}, scale now {Scale:0.###}", actualFactor, targetScale);
         }
 
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
-
-            // Déplacement du calque sélectionné avec le clic gauche (après clic sur moveButton)
-            if (_isMovingLastLayer && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            var point = e.GetCurrentPoint(this);
+            if (!_isMovingLastLayer && point.Properties.IsLeftButtonPressed)
+            {
+                var world = ScreenToWorld(point.Position);
+                for (int i = Layers.Count - 1; i >= 0; i--)
+                {
+                    if (Layers[i] is IMovableRectLayer rectLayer && rectLayer.Rect.Contains(world))
+                    {
+                        SelectedDrawableLayer = Layers[i];
+                        e.Handled = true;
+                        InvalidateVisual();
+                        break;
+                    }
+                }
+            }
+            if (_isMovingLastLayer && point.Properties.IsLeftButtonPressed)
             {
                 _movingLayer = SelectedDrawableLayer as IMovableRectLayer;
-                if (_movingLayer is null)
-                    return;
-
+                if (_movingLayer is null) return;
                 _layerDragStartPointer = e.GetPosition(this);
                 _layerDragStartRect = _movingLayer.Rect;
                 e.Pointer.Capture(this);
                 e.Handled = true;
                 return;
             }
-
-            // Pan avec le bouton du milieu
-            if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+            if (point.Properties.IsMiddleButtonPressed)
             {
                 _isPanning = true;
                 _lastPanPoint = e.GetPosition(this);
+                e.Pointer.Capture(this);
+                e.Handled = true;
             }
         }
 
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
-
-            // Mise à jour de la position de la souris (affichage overlay)
             _lastPointerPos = e.GetPosition(this);
             _hasPointerPos = true;
-
-            // Continuer à déplacer si nous avons la capture (plus robuste que tester le bouton)
             if (_isMovingLastLayer && _movingLayer is not null && e.Pointer.Captured == this)
             {
                 var pos = e.GetPosition(this);
                 var deltaScreen = pos - _layerDragStartPointer;
-
-                // Convertit le delta écran -> espace "calques" (monde) en annulant zoom et rotation
                 var scale = GetCurrentScale();
                 if (scale <= 0) scale = 1;
-
                 var angle = Rotation * Math.PI / 180.0;
                 var cos = Math.Cos(angle);
                 var sin = Math.Sin(angle);
-
                 var dx = deltaScreen.X / scale;
                 var dy = deltaScreen.Y / scale;
-
-                // Appliquer la rotation inverse: R(-angle) * (dx, dy)
                 var worldDx = dx * cos + dy * sin;
                 var worldDy = -dx * sin + dy * cos;
-
                 _movingLayer.Rect = new Rect(
                     _layerDragStartRect.X + worldDx,
                     _layerDragStartRect.Y + worldDy,
                     _layerDragStartRect.Width,
                     _layerDragStartRect.Height);
-
                 InvalidateVisual();
                 e.Handled = true;
                 return;
             }
-
-            if (_isPanning && e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+            if (_isPanning && e.Pointer.Captured == this)
             {
                 var currentPoint = e.GetPosition(this);
                 var delta = currentPoint - _lastPanPoint;
-                _transform = Matrix.CreateTranslation(new Vector(delta.X, delta.Y)) * _transform;
-                _lastPanPoint = currentPoint;
-                InvalidateVisual();
+                if (delta != default)
+                {
+                    _transform = Matrix.CreateTranslation(new Vector(delta.X, delta.Y)) * _transform;
+                    _lastPanPoint = currentPoint;
+                    InvalidateVisual();
+                }
+                e.Handled = true;
                 return;
             }
-
-            // Rafraîchit l'overlay même sans pan/move
             InvalidateVisual();
         }
 
@@ -383,53 +395,50 @@ namespace AvaloniaMvvmDraw.Views
             return 1.0;
         }
 
+        private Point ScreenToWorld(Point screen)
+        {
+            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
+            var angleRad = Rotation * Math.PI / 180.0;
+            var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
+                           Matrix.CreateRotation(angleRad) *
+                           Matrix.CreateTranslation(new Vector(center.X, center.Y));
+            var composite = rotation * _transform;
+            if (composite.TryInvert(out var inv)) return inv.Transform(screen);
+            return screen;
+        }
+
         protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
             base.OnPointerReleased(e);
-
-            if (_isMovingLastLayer)
+            if (_isMovingLastLayer && e.Pointer.Captured == this)
             {
-                // Fin du drag uniquement, rester en mode déplacer
-                if (e.Pointer.Captured == this)
-                    e.Pointer.Capture(null);
-                // Ne pas désactiver le mode ni changer le curseur
+                e.Pointer.Capture(null);
                 e.Handled = true;
                 InvalidateVisual();
                 return;
             }
+            if (_isPanning && e.Pointer.Captured == this)
+            {
+                e.Pointer.Capture(null);
+                _isPanning = false;
+                e.Handled = true;
+            }
+        }
 
-           //    _isPanning = false;
+        protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+        {
+            base.OnPointerCaptureLost(e);
+            _isPanning = false;
+            if (_isMovingLastLayer) _movingLayer = null;
         }
 
         protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
         {
             base.OnPointerWheelChanged(e);
             if (e.Delta.Y == 0) return;
-
             e.Handled = true;
-
-            // Calcul du pivot de zoom dans l'espace "avant rotation"
-            var position = e.GetPosition(this);
-            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
-            var angle = Rotation * Math.PI / 180.0;
-            var dx = position.X - center.X;
-            var dy = position.Y - center.Y;
-            var cos = Math.Cos(-angle);
-            var sin = Math.Sin(-angle);
-            var localX = dx * cos - dy * sin;
-            var localY = dx * sin + dy * cos;
-            var localPos = new Point(localX + center.X, localY + center.Y);
-
-            zoomFactor = e.Delta.Y > 0 ? 1.1 : 0.9;
-
-            _transform = Matrix.CreateTranslation(new Vector(-localPos.X, -localPos.Y)) *
-                         Matrix.CreateScale(new Vector(zoomFactor, zoomFactor)) *
-                         Matrix.CreateTranslation(new Vector(localPos.X, localPos.Y)) * _transform;
-
-            InvalidateVisual();
-
-            Log.Information("Wheel handled -> Zoom step: {ZoomStep:0.00}x, Rotation: {Rotation}°", zoomFactor, Rotation);
+            var factor = e.Delta.Y > 0 ? ZoomStepUp : ZoomStepDown;
+            ApplyZoom(e.GetPosition(this), factor);
         }
     }
-
 }

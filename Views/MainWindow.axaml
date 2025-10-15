@@ -30,8 +30,12 @@
         </Grid>
       </Border>
 
-      <Border BorderBrush="Red" BorderThickness="1">
-        <views:DrawingSurface x:Name="drawingSurface"/>
+      <Border BorderBrush="Red"
+             BorderThickness="1"
+             ClipToBounds="True">
+        <ScrollViewer>
+          <views:DrawingSurface x:Name="drawingSurface"/>
+        </ScrollViewer>
       </Border>
     </DockPanel>
 
@@ -111,16 +115,10 @@
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
                  SelectionMode="Single"
                  HorizontalAlignment="Stretch"
-                 MinWidth="160"
-                 DragDrop.AllowDrop="True"
-                 DragDrop.DragOver="LayersList_DragOver"
-                 DragDrop.Drop="LayersList_Drop"
-                 PointerPressed="LayersList_PointerPressed"
-                 PointerMoved="LayersList_PointerMoved"
-                 PointerReleased="LayersList_PointerReleased">
+                 MinWidth="160">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="intf:IDrawableLayer">
-              <TextBlock Text="{Binding Name}"/>
+              <TextBlock Text="{Binding Name}" IsHitTestVisible="False"/>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
