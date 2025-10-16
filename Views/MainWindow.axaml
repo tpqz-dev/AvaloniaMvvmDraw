@@ -18,26 +18,11 @@
         </MenuItem>
       </Menu>
       
-      <!-- Panneau flottant déplaçable -->
+      <!-- Barre supérieure désormais vide (commandes déplacées dans Overview) -->
       <Border DockPanel.Dock="Top" Height="32" Background="LightGray">
-        <Grid ColumnDefinitions="Auto,Auto,*" Margin="8,0">
-          <Button x:Name="resetViewButton"
-                  Grid.Column="0"
-                  Content="Reset"
-                  Margin="0,0,8,0"
-                  VerticalAlignment="Center"
-                  Click="ResetViewButton_Click"/>
-          <TextBlock Grid.Column="1" Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <Slider x:Name="rotation"
-                  Grid.Column="2"
-                  Minimum="0" Maximum="360"
-                  TickFrequency="15"
-                  VerticalAlignment="Center"
-                  Value="{Binding Rotation, ElementName=drawingSurface, Mode=TwoWay}"/>
-        </Grid>
+        <Grid/>
       </Border>
 
-         
       <!-- Drawing surface -->
       <Border BorderBrush="Red"
              BorderThickness="1"
@@ -173,13 +158,13 @@
 
     <!-- Nouveau panneau flottant "Overview" -->
     <Border x:Name="overviewPanel"
-            Width="260" Height="220"
+            Width="260" Height="260"
             BorderBrush="Black" BorderThickness="1"
             Background="#CCFFFFFF">
       <Border.RenderTransform>
         <TranslateTransform X="420" Y="40"/>
       </Border.RenderTransform>
-      <Grid RowDefinitions="Auto,*">
+      <Grid RowDefinitions="Auto,Auto,*">
         <Border x:Name="overviewHeader"
                 Background="#FF2D2D2D" Height="28"
                 Cursor="SizeAll"
@@ -189,7 +174,23 @@
                 PointerCaptureLost="OverviewHeader_PointerCaptureLost">
           <TextBlock Margin="8,0" VerticalAlignment="Center" Foreground="White" Text="Overview"/>
         </Border>
-        <Grid Grid.Row="1" Margin="8">
+        <!-- Controls moved here -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" Margin="8,4,8,4">
+          <Button x:Name="resetViewButton"
+                  Grid.Column="0"
+                  Content="Reset"
+                  Margin="0,0,8,0"
+                  VerticalAlignment="Center"
+                  Click="ResetViewButton_Click"/>
+          <TextBlock Grid.Column="1" Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <Slider x:Name="rotation"
+                  Grid.Column="2"
+                  Minimum="0" Maximum="360"
+                  TickFrequency="15"
+                  VerticalAlignment="Center"
+                  Value="{Binding Rotation, ElementName=drawingSurface, Mode=TwoWay}"/>
+        </Grid>
+        <Grid Grid.Row="2" Margin="8">
           <Image x:Name="overviewImage" Stretch="Uniform"/>
         </Grid>
       </Grid>
