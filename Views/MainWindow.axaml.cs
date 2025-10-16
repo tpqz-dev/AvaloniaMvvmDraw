@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia;
+using Avalonia.Media;
 using System;
 using Serilog;
 
@@ -27,6 +28,50 @@ namespace AvaloniaMvvmDraw.Views
             layersList.AddHandler(DragDrop.DragOverEvent, LayersList_DragOver, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
             layersList.AddHandler(DragDrop.DropEvent, LayersList_Drop, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
             DragDrop.SetAllowDrop(layersList, true);
+        }
+
+        private bool _overviewDragging;
+        private Point _overviewStart;
+        private Vector _overviewOffset;
+
+        private void OverviewHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            var header = (Border)sender!;
+            var panel = (Border)header.Parent!.Parent!;
+            var tt = (TranslateTransform)panel.RenderTransform!;
+            _overviewDragging = true;
+            _overviewStart = e.GetPosition(this);
+            _overviewOffset = new Vector(tt.X, tt.Y);
+            e.Pointer.Capture(header);
+            e.Handled = true;
+        }
+
+        private void OverviewHeader_PointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (!_overviewDragging) return;
+            var header = (Border)sender!;
+            var panel = (Border)header.Parent!.Parent!;
+            var tt = (TranslateTransform)panel.RenderTransform!;
+            var pos = e.GetPosition(this);
+            var delta = pos - _overviewStart;
+            tt.X = _overviewOffset.X + delta.X;
+            tt.Y = _overviewOffset.Y + delta.Y;
+            e.Handled = true;
+        }
+
+        private void OverviewHeader_PointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (_overviewDragging)
+            {
+                _overviewDragging = false;
+                e.Pointer.Capture(null);
+                e.Handled = true;
+            }
+        }
+
+        private void OverviewHeader_PointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+        {
+            _overviewDragging = false;
         }
 
         private void ResetViewButton_Click(object? sender, RoutedEventArgs e)

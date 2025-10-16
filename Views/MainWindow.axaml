@@ -170,5 +170,30 @@
         </ListBox>
       </Grid>
     </Border>
+
+    <!-- Nouveau panneau flottant "Overview" -->
+    <Border x:Name="overviewPanel"
+            Width="260" Height="220"
+            BorderBrush="Black" BorderThickness="1"
+            Background="#CCFFFFFF">
+      <Border.RenderTransform>
+        <TranslateTransform X="420" Y="40"/>
+      </Border.RenderTransform>
+      <Grid RowDefinitions="Auto,*">
+        <Border x:Name="overviewHeader"
+                Background="#FF2D2D2D" Height="28"
+                Cursor="SizeAll"
+                PointerPressed="OverviewHeader_PointerPressed"
+                PointerMoved="OverviewHeader_PointerMoved"
+                PointerReleased="OverviewHeader_PointerReleased"
+                PointerCaptureLost="OverviewHeader_PointerCaptureLost">
+          <TextBlock Margin="8,0" VerticalAlignment="Center" Foreground="White" Text="Overview"/>
+        </Border>
+        <Grid Grid.Row="1" Margin="8">
+          <!-- Placeholder content for overview -->
+          <TextBlock Text="Overview content" Foreground="#444"/>
+        </Grid>
+      </Grid>
+    </Border>
   </Grid>
 </Window>
