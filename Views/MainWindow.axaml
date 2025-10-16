@@ -39,7 +39,7 @@
             BorderBrush="Black" BorderThickness="1"
             Background="#CCFFFFFF">
       <Border.RenderTransform>
-        <TranslateTransform X="40" Y="40"/>
+        <TranslateTransform X="0" Y="40"/>
       </Border.RenderTransform>
 
       <Grid RowDefinitions="Auto,*">
@@ -109,7 +109,7 @@
             Background="#CCFFFFFF">
       <Border.RenderTransform>
         <!-- Position initiale pour ne pas recouvrir le panel Tools -->
-        <TranslateTransform X="160" Y="40"/>
+        <TranslateTransform X="260" Y="40"/>
       </Border.RenderTransform>
 
       <Grid Name="layersGrid" RowDefinitions="Auto,Auto,*">
@@ -134,7 +134,6 @@
 
         <ListBox Grid.Row="2" Margin="8"
                  x:Name="layersList"
-                 ItemsSource="{Binding ElementName=drawingSurface, Path=Layers}"
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
                  SelectionMode="Single"
                  HorizontalAlignment="Stretch"

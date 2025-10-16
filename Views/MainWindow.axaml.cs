@@ -6,13 +6,14 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using System;
+using System.Linq;
 using Serilog;
 
 namespace AvaloniaMvvmDraw.Views
 {
     public partial class MainWindow : Window
     {
-        private DispatcherTimer? _overviewSnapshotTimer;
+        private DispatcherTimer? _overviewTimer;
 
         public MainWindow()
         {
@@ -25,7 +26,7 @@ namespace AvaloniaMvvmDraw.Views
             layersList.AddHandler(InputElement.PointerReleasedEvent, LayersList_PointerReleased,
                 RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
 
-            // Selection change guard during drag
+            // Selection change guard during drag (handler defined in LayersDragDrop.cs)
             layersList.SelectionChanged += LayersList_SelectionChanged;
 
             // Drag/drop (kept no-op now but enabled if needed)
@@ -84,6 +85,7 @@ namespace AvaloniaMvvmDraw.Views
             drawingSurface.Focus();
             drawingSurface.ResetView(true);
             Log.Information("Reset view by button click");
+            UpdateOverviewSnapshot();
         }
 
         private async void AboutMenu_Click(object? sender, RoutedEventArgs e)
@@ -106,25 +108,39 @@ namespace AvaloniaMvvmDraw.Views
             drawingSurface.ToggleTransformMode();
             drawingSurface.Focus();
             Log.Information("Transform mode toggled from Tools panel");
+            UpdateOverviewSnapshot();
+        }
+
+        private void BindLayersReverse()
+        {
+            if (layersList is null || drawingSurface is null) return;
+            layersList.ItemsSource = drawingSurface.Layers.Reverse().ToList();
         }
 
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            // Start periodic snapshot updates
-            _overviewSnapshotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-            _overviewSnapshotTimer.Tick += (_, __) => UpdateOverviewSnapshot();
-            _overviewSnapshotTimer.Start();
+            BindLayersReverse();
+            drawingSurface.Layers.CollectionChanged += (_, __) => BindLayersReverse();
+
+            // Overview snapshot updates (periodic + on size changes)
+            _overviewTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _overviewTimer.Tick += (_, __) => UpdateOverviewSnapshot();
+            _overviewTimer.Start();
+            drawingSurface.PropertyChanged += (_, __) => UpdateOverviewSnapshot();
+            SizeChanged += (_, __) => UpdateOverviewSnapshot();
+            UpdateOverviewSnapshot();
         }
 
         private void UpdateOverviewSnapshot()
         {
             try
             {
-                if (overviewImage is null || drawingSurface is null || drawingSurface.Bounds.Width <= 0 || drawingSurface.Bounds.Height <= 0)
-                    return;
-                var size = drawingSurface.Bounds.Size;
-                var rtb = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
+                if (overviewImage is null || drawingSurface is null) return;
+                var w = Math.Max(1, (int)Math.Ceiling(drawingSurface.Bounds.Width));
+                var h = Math.Max(1, (int)Math.Ceiling(drawingSurface.Bounds.Height));
+                if (w == 0 || h == 0) return;
+                var rtb = new RenderTargetBitmap(new PixelSize(w, h));
                 rtb.Render(drawingSurface);
                 overviewImage.Source = rtb;
             }
