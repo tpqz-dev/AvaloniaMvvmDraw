@@ -190,8 +190,7 @@
           <TextBlock Margin="8,0" VerticalAlignment="Center" Foreground="White" Text="Overview"/>
         </Border>
         <Grid Grid.Row="1" Margin="8">
-          <!-- Placeholder content for overview -->
-          <TextBlock Text="Overview content" Foreground="#444"/>
+          <Image x:Name="overviewImage" Stretch="Uniform"/>
         </Grid>
       </Grid>
     </Border>

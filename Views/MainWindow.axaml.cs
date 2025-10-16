@@ -3,6 +3,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using System;
 using Serilog;
 
@@ -10,6 +12,8 @@ namespace AvaloniaMvvmDraw.Views
 {
     public partial class MainWindow : Window
     {
+        private DispatcherTimer? _overviewSnapshotTimer;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -102,6 +106,32 @@ namespace AvaloniaMvvmDraw.Views
             drawingSurface.ToggleTransformMode();
             drawingSurface.Focus();
             Log.Information("Transform mode toggled from Tools panel");
+        }
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            // Start periodic snapshot updates
+            _overviewSnapshotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+            _overviewSnapshotTimer.Tick += (_, __) => UpdateOverviewSnapshot();
+            _overviewSnapshotTimer.Start();
+        }
+
+        private void UpdateOverviewSnapshot()
+        {
+            try
+            {
+                if (overviewImage is null || drawingSurface is null || drawingSurface.Bounds.Width <= 0 || drawingSurface.Bounds.Height <= 0)
+                    return;
+                var size = drawingSurface.Bounds.Size;
+                var rtb = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
+                rtb.Render(drawingSurface);
+                overviewImage.Source = rtb;
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Failed to snapshot DrawingSurface for Overview");
+            }
         }
     }
 }
