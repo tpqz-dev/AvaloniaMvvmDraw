@@ -155,19 +155,14 @@
                  HorizontalAlignment="Stretch"
                  MinWidth="160">
           <ListBox.ItemTemplate>
-            <!-- Template spécifique pour ImageLayer: affiche la miniature quand l’item est sélectionné -->
-           
-            <!-- Fallback pour autres calques -->
             <DataTemplate x:DataType="intf:IDrawableLayer">
-                  <DockPanel LastChildFill="True">
+              <DockPanel LastChildFill="True">
                 <Image Width="40" Height="40"
                        Margin="0,0,6,0"
                        Stretch="UniformToFill"
-                       Source="{Binding Bitmap}"
-                       IsVisible="{Binding $parent[ListBoxItem].IsSelected}"/>
+                       Source="{Binding Bitmap}"/>
                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
               </DockPanel>
-             
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
