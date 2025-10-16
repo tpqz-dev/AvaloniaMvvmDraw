@@ -37,6 +37,8 @@
         </Grid>
       </Border>
 
+         
+      <!-- Drawing surface -->
       <Border BorderBrush="Red"
              BorderThickness="1"
              ClipToBounds="True">
@@ -115,7 +117,7 @@
       </Grid>
     </Border>
 
-    <!-- Nouveau panneau flottant "Layers" -->
+    <!--         panneau flottant "Layers" -->
     <Border x:Name="layerPanel"
             Width="220" Height="300"
             BorderBrush="Black" BorderThickness="1"

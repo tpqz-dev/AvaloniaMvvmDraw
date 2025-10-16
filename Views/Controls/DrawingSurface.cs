@@ -16,6 +16,9 @@ namespace AvaloniaMvvmDraw.Views
 {
     public partial class DrawingSurface : Control
     {
+        // Conteneur global visible, 1500x500 à l’origine
+        private Rect _globalContainerRect = new Rect(0, 0, 1500, 1000);
+
         private Matrix _transform = Matrix.Identity;
         private Point _lastPanPoint;
         private bool _isPanning;
@@ -222,21 +225,23 @@ namespace AvaloniaMvvmDraw.Views
         public override void Render(DrawingContext context)
         {
             base.Render(context);
-            using (context.PushClip(new Rect(Bounds.Size)))
+
+            // Applique la transform globale (rotation + pan/zoom) au conteneur et son contenu
+            var angleRad = Rotation * Math.PI / 180.0;
+            using (context.PushTransform(Matrix.CreateRotation(angleRad) * _transform))
             {
-                var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
-                var angleRad = Rotation * Math.PI / 180.0;
-                var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
-                               Matrix.CreateRotation(angleRad) *
-                               Matrix.CreateTranslation(new Vector(center.X, center.Y));
-                var tl = TopLevel.GetTopLevel(this);
-                var surfaceSize = tl?.ClientSize ?? Bounds.Size;
-                using (context.PushTransform(rotation * _transform))
+                // Fond damier + légère teinte pour bien le distinguer
+                DrawCheckerboard(context, _globalContainerRect);
+                context.FillRectangle(new SolidColorBrush(Color.FromArgb(20, 30, 144, 255)), _globalContainerRect); // bleu très léger
+
+                // Clip au conteneur et rendu des calques (ils seront "dans" le container)
+                using (context.PushClip(_globalContainerRect))
                 {
+                    var containerSize = _globalContainerRect.Size;
                     foreach (var layer in Layers)
                     {
-                        layer.Size = surfaceSize;
-                        // Apply per-layer rotation
+                        layer.Size = containerSize;
+
                         if (layer is IMovableRectLayer m && _layerAngles.TryGetValue(layer, out var a) && Math.Abs(a) > Epsilon)
                         {
                             var rc = m.Rect;
@@ -245,9 +250,7 @@ namespace AvaloniaMvvmDraw.Views
                                       Matrix.CreateRotation(a) *
                                       Matrix.CreateTranslation(new Vector(c.X, c.Y));
                             using (context.PushTransform(mtx))
-                            {
                                 layer.Draw(context);
-                            }
                         }
                         else
                         {
@@ -255,8 +258,35 @@ namespace AvaloniaMvvmDraw.Views
                         }
                     }
                 }
+
+                // Bordure bleue plus épaisse pour être bien visible
+                var border = new Pen(Brushes.DodgerBlue, 3);
+                context.DrawRectangle(null, border, _globalContainerRect);
             }
+
+            // Overlay (texte, croix, gizmos)
             DrawOverlay(context);
+        }
+
+        // Damier limité à une zone
+        private void DrawCheckerboard(DrawingContext context, Rect area)
+        {
+            const int tile = 12;
+            var dark = new SolidColorBrush(Color.FromRgb(200, 200, 200));
+            var light = new SolidColorBrush(Color.FromRgb(230, 230, 230));
+
+            var cols = (int)Math.Ceiling(area.Width / tile);
+            var rows = (int)Math.Ceiling(area.Height / tile);
+
+            for (int y = 0; y < rows; y++)
+            {
+                for (int x = 0; x < cols; x++)
+                {
+                    var r = new Rect(area.X + x * tile, area.Y + y * tile, tile, tile);
+                    var brush = ((x + y) % 2 == 0) ? light : dark;
+                    context.FillRectangle(brush, r);
+                }
+            }
         }
 
         private void DrawOverlay(DrawingContext context)
