@@ -17,6 +17,17 @@ namespace AvaloniaMvvmDraw.Views
         private bool _isReorderActive;
         private const double DragThreshold = 4; // pixels
 
+        private void LayersList_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (_isReorderActive && _draggedLayer is not null)
+            {
+                // Revert selection to the dragged layer during drag
+                layersList.SelectedItem = _draggedLayer;
+                drawingSurface.SelectedDrawableLayer = _draggedLayer;
+                Log.Debug("[Reorder] Block selection change during drag");
+            }
+        }
+
         // Appelé par XAML : PointerPressed="LayersList_PointerPressed"
         private void LayersList_PointerPressed(object? sender, PointerPressedEventArgs e)
         {

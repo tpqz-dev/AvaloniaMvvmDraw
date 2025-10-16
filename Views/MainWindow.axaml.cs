@@ -20,6 +20,9 @@ namespace AvaloniaMvvmDraw.Views
             layersList.AddHandler(InputElement.PointerReleasedEvent, LayersList_PointerReleased,
                 RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
 
+            // Selection change guard during drag
+            layersList.SelectionChanged += LayersList_SelectionChanged;
+
             // Drag/drop (kept no-op now but enabled if needed)
             layersList.AddHandler(DragDrop.DragOverEvent, LayersList_DragOver, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
             layersList.AddHandler(DragDrop.DropEvent, LayersList_Drop, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
