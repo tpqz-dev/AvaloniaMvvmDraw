@@ -156,9 +156,12 @@
                  MinWidth="160">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="intf:IDrawableLayer">
-              <Border BorderThickness="1" BorderBrush="#808080" Margin="0,2,0,2" Padding="4">
+              <Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
                 <DockPanel LastChildFill="True">
-                  <Image Width="40" Height="40" Margin="0,0,6,0" Stretch="UniformToFill" Source="{Binding Bitmap}"/>
+                  <Image Width="40" Height="40"
+                         Margin="0,0,6,0"
+                         Stretch="UniformToFill"
+                         Source="{Binding Bitmap}"/>
                   <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
                 </DockPanel>
               </Border>
