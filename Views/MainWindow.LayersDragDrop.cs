@@ -31,7 +31,9 @@ namespace AvaloniaMvvmDraw.Views
             _dragStartPoint = e.GetPosition(layersList);
             _dragOriginalIndex = drawingSurface.Layers.IndexOf(_draggedLayer);
             _isReorderActive = false;
+            // Ensure selection is on the dragged item as we begin
             layersList.SelectedItem = _draggedLayer;
+            drawingSurface.SelectedDrawableLayer = _draggedLayer;
             e.Pointer.Capture(layersList);
             Log.Debug("[Reorder] Press layer={Layer} index={Index}", _draggedLayer.Name, _dragOriginalIndex);
         }
@@ -65,6 +67,9 @@ namespace AvaloniaMvvmDraw.Views
             if (currentIndex >= 0 && targetIndex != currentIndex)
             {
                 drawingSurface.Layers.Move(currentIndex, targetIndex);
+                // Keep the dragged layer selected while reordering
+                drawingSurface.SelectedDrawableLayer = _draggedLayer;
+                layersList.SelectedItem = _draggedLayer;
                 Log.Debug("[Reorder] Move {Layer} {From}->{To}", _draggedLayer.Name, currentIndex, targetIndex);
             }
             e.Handled = true;
@@ -75,6 +80,12 @@ namespace AvaloniaMvvmDraw.Views
         {
             if (e.Pointer.Captured == layersList)
                 e.Pointer.Capture(null);
+            if (_draggedLayer is not null)
+            {
+                // Ensure final selection is the dragged layer
+                drawingSurface.SelectedDrawableLayer = _draggedLayer;
+                layersList.SelectedItem = _draggedLayer;
+            }
             if (_isReorderActive)
             {
                 Log.Debug("[Reorder] End drag layer={Layer}", _draggedLayer?.Name);
@@ -107,7 +118,6 @@ namespace AvaloniaMvvmDraw.Views
             _isReorderActive = false;
         }
 
-        // Les anciens handlers DragOver / Drop (OS) ne sont plus nécessaires mais peuvent rester vides.
         private void LayersList_DragOver(object? sender, DragEventArgs e) { }
         private void LayersList_Drop(object? sender, DragEventArgs e) { }
     }
