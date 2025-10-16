@@ -226,29 +226,30 @@ namespace AvaloniaMvvmDraw.Views
         {
             base.Render(context);
 
-            // Applique la transform globale (rotation + pan/zoom) au conteneur et son contenu
+            // Global rotation around the center of the global container, then pan/zoom (_transform)
             var angleRad = Rotation * Math.PI / 180.0;
-            using (context.PushTransform(Matrix.CreateRotation(angleRad) * _transform))
-            {
-                // Fond damier + légère teinte pour bien le distinguer
-                DrawCheckerboard(context, _globalContainerRect);
-                context.FillRectangle(new SolidColorBrush(Color.FromArgb(20, 30, 144, 255)), _globalContainerRect); // bleu très léger
+            var c = new Point(_globalContainerRect.X + _globalContainerRect.Width / 2, _globalContainerRect.Y + _globalContainerRect.Height / 2);
+            var rotAtCenter = Matrix.CreateTranslation(new Vector(-c.X, -c.Y)) *
+                              Matrix.CreateRotation(angleRad) *
+                              Matrix.CreateTranslation(new Vector(c.X, c.Y));
 
-                // Clip au conteneur et rendu des calques (ils seront "dans" le container)
+            using (context.PushTransform(rotAtCenter * _transform))
+            {
+                // Background checker and slight tint
+                DrawCheckerboard(context, _globalContainerRect);
+                context.FillRectangle(new SolidColorBrush(Color.FromArgb(20, 30, 144, 255)), _globalContainerRect);
+
                 using (context.PushClip(_globalContainerRect))
                 {
                     var containerSize = _globalContainerRect.Size;
                     foreach (var layer in Layers)
                     {
                         layer.Size = containerSize;
-
                         if (layer is IMovableRectLayer m && _layerAngles.TryGetValue(layer, out var a) && Math.Abs(a) > Epsilon)
                         {
                             var rc = m.Rect;
-                            var c = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
-                            var mtx = Matrix.CreateTranslation(new Vector(-c.X, -c.Y)) *
-                                      Matrix.CreateRotation(a) *
-                                      Matrix.CreateTranslation(new Vector(c.X, c.Y));
+                            var lc = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
+                            var mtx = Matrix.CreateTranslation(new Vector(-lc.X, -lc.Y)) * Matrix.CreateRotation(a) * Matrix.CreateTranslation(new Vector(lc.X, lc.Y));
                             using (context.PushTransform(mtx))
                                 layer.Draw(context);
                         }
@@ -259,12 +260,10 @@ namespace AvaloniaMvvmDraw.Views
                     }
                 }
 
-                // Bordure bleue plus épaisse pour être bien visible
                 var border = new Pen(Brushes.DodgerBlue, 3);
                 context.DrawRectangle(null, border, _globalContainerRect);
             }
 
-            // Overlay (texte, croix, gizmos)
             DrawOverlay(context);
         }
 
@@ -594,12 +593,12 @@ namespace AvaloniaMvvmDraw.Views
 
         private Point ScreenToWorld(Point screen)
         {
-            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
             var angleRad = Rotation * Math.PI / 180.0;
-            var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
-                           Matrix.CreateRotation(angleRad) *
-                           Matrix.CreateTranslation(new Vector(center.X, center.Y));
-            var composite = rotation * _transform;
+            var c = new Point(_globalContainerRect.X + _globalContainerRect.Width / 2, _globalContainerRect.Y + _globalContainerRect.Height / 2);
+            var rotAtCenter = Matrix.CreateTranslation(new Vector(-c.X, -c.Y)) *
+                              Matrix.CreateRotation(angleRad) *
+                              Matrix.CreateTranslation(new Vector(c.X, c.Y));
+            var composite = rotAtCenter * _transform;
             if (composite.TryInvert(out var inv))
                 return inv.Transform(screen);
             return screen;
@@ -607,13 +606,32 @@ namespace AvaloniaMvvmDraw.Views
 
         private Point WorldToScreen(Point world)
         {
-            var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
             var angleRad = Rotation * Math.PI / 180.0;
-            var rotation = Matrix.CreateTranslation(new Vector(-center.X, -center.Y)) *
-                           Matrix.CreateRotation(angleRad) *
-                           Matrix.CreateTranslation(new Vector(center.X, center.Y));
-            var composite = rotation * _transform;
+            var c = new Point(_globalContainerRect.X + _globalContainerRect.Width / 2, _globalContainerRect.Y + _globalContainerRect.Height / 2);
+            var rotAtCenter = Matrix.CreateTranslation(new Vector(-c.X, -c.Y)) *
+                              Matrix.CreateRotation(angleRad) *
+                              Matrix.CreateTranslation(new Vector(c.X, c.Y));
+            var composite = rotAtCenter * _transform;
             return composite.Transform(world);
+        }
+
+        public Rect GetViewportWorldRect()
+        {
+            var angleRad = Rotation * Math.PI / 180.0;
+            var c = new Point(_globalContainerRect.X + _globalContainerRect.Width / 2, _globalContainerRect.Y + _globalContainerRect.Height / 2);
+            var rotAtCenter = Matrix.CreateTranslation(new Vector(-c.X, -c.Y)) *
+                              Matrix.CreateRotation(angleRad) *
+                              Matrix.CreateTranslation(new Vector(c.X, c.Y));
+            var composite = rotAtCenter * _transform;
+            if (!composite.TryInvert(out var inv))
+                return new Rect(0, 0, Bounds.Width, Bounds.Height);
+            var tl = inv.Transform(new Point(0, 0));
+            var br = inv.Transform(new Point(Bounds.Width, Bounds.Height));
+            var left = Math.Min(tl.X, br.X);
+            var top = Math.Min(tl.Y, br.Y);
+            var right = Math.Max(tl.X, br.X);
+            var bottom = Math.Max(tl.Y, br.Y);
+            return new Rect(left, top, right - left, bottom - top);
         }
 
         protected override void OnPointerMoved(PointerEventArgs e)
