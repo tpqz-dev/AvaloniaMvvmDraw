@@ -112,6 +112,7 @@
         <TranslateTransform X="260" Y="40"/>
       </Border.RenderTransform>
 
+      <!-- Host grid for list and overlay -->
       <Grid Name="layersGrid" RowDefinitions="Auto,Auto,*">
         <Border x:Name="layerHeader"
                 Background="#FF2D2D2D" Height="28"
@@ -132,26 +133,36 @@
           <Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
         </StackPanel>
 
-        <ListBox Grid.Row="2" Margin="8"
+        <!-- Overlay grid to host list and drop indicator line -->
+        <Grid Grid.Row="2" Margin="8" x:Name="layersListHost">
+          <ListBox
                  x:Name="layersList"
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
                  SelectionMode="Single"
                  HorizontalAlignment="Stretch"
                  MinWidth="160">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="intf:IDrawableLayer">
-              <Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
-                <DockPanel LastChildFill="True">
-                  <Image Width="40" Height="40"
-                         Margin="0,0,6,0"
-                         Stretch="UniformToFill"
-                         Source="{Binding Bitmap}"/>
-                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                </DockPanel>
-              </Border>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="intf:IDrawableLayer">
+                <Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
+                  <DockPanel LastChildFill="True">
+                    <Image Width="40" Height="40"
+                           Margin="0,0,6,0"
+                           Stretch="UniformToFill"
+                           Source="{Binding Bitmap}"/>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <!-- Drop indicator line -->
+          <Border x:Name="dropIndicator"
+                  IsVisible="False"
+                  Height="2"
+                  Background="#FF1E90FF"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Top"/>
+        </Grid>
       </Grid>
     </Border>
 
