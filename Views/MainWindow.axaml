@@ -1,182 +1,186 @@
 <Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:views="clr-namespace:AvaloniaMvvmDraw.Views"
-        xmlns:models="clr-namespace:AvaloniaMvvmDraw.Views.Models"
-        xmlns:intf="clr-namespace:AvaloniaMvvmDraw.Views.Interfaces"
-        x:Class="AvaloniaMvvmDraw.Views.MainWindow">
-  <Grid>
-    <!-- menu -->
-    <DockPanel>
-      <Menu DockPanel.Dock="Top">
-        <MenuItem Header="_File">
-          <MenuItem Header="_Load" Click="LoadMenu_Click"/>
-          <MenuItem Header="_Save"/>
-          <MenuItem Header="E_xit" Click="ExitMenu_Click"/>
-        </MenuItem>
-        <MenuItem Header="_Help">
-          <MenuItem Header="_About" Click="AboutMenu_Click"/>
-        </MenuItem>
-      </Menu>
-      
-      <!-- Barre supérieure désormais vide (commandes déplacées dans Overview) -->
-      <Border DockPanel.Dock="Top" Height="32" Background="LightGray">
-        <Grid/>
-      </Border>
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:views="clr-namespace:AvaloniaMvvmDraw.Views"
+		xmlns:models="clr-namespace:AvaloniaMvvmDraw.Views.Models"
+		xmlns:intf="clr-namespace:AvaloniaMvvmDraw.Views.Interfaces"
+		x:Class="AvaloniaMvvmDraw.Views.MainWindow"
+		Width="1500"
+		Height="800"
+		>
+	<Grid>
+		<!-- menu -->
+		<DockPanel>
+			<Menu DockPanel.Dock="Top">
+				<MenuItem Header="_File">
+					<MenuItem Header="_Load" Click="LoadMenu_Click"/>
+					<MenuItem Header="_Save"/>
+					<MenuItem Header="E_xit" Click="ExitMenu_Click"/>
+				</MenuItem>
+				<MenuItem Header="_Help">
+					<MenuItem Header="_About" Click="AboutMenu_Click"/>
+				</MenuItem>
+			</Menu>
 
-      <!-- Drawing surface -->
-      <Border BorderBrush="Red"
-             BorderThickness="1"
-             ClipToBounds="True">
-        <ScrollViewer>
-          <views:DrawingSurface x:Name="drawingSurface"/>
-        </ScrollViewer>
-      </Border>
-    </DockPanel>
+			<!-- Barre supérieure désormais vide (commandes déplacées dans Overview) -->
+			<Border DockPanel.Dock="Top" Height="32" Background="LightGray">
+				<Grid/>
+			</Border>
 
-    <!-- Panneau flottant déplaçable -->
-    <Border x:Name="floatingPanel"
-            Width="140" Height="350"
-            BorderBrush="Black" BorderThickness="1"
-            Background="#CCFFFFFF">
-      <Border.RenderTransform>
-        <TranslateTransform X="0" Y="40"/>
-      </Border.RenderTransform>
+			<!-- Drawing surface -->
+			<Border BorderBrush="Red"
+					BorderThickness="1"
+					ClipToBounds="True">
+				<ScrollViewer>
+					<views:DrawingSurface x:Name="drawingSurface"/>
+				</ScrollViewer>
+			</Border>
+		</DockPanel>
 
-      <Grid RowDefinitions="Auto,*">
-        <Border x:Name="floatingHeader"
-                Background="#FF2D2D2D" Height="28"
-                Cursor="SizeAll"
-                PointerPressed="FloatingHeader_PointerPressed"
-                PointerMoved="FloatingHeader_PointerMoved"
-                PointerReleased="FloatingHeader_PointerReleased"
-                PointerCaptureLost="FloatingHeader_PointerCaptureLost">
-          <TextBlock Margin="8,0"
-                     VerticalAlignment="Center"
-                     Foreground="White"
-                     Text="Tools"/>
-        </Border>
+		<!-- Panneau Tools flottant déplaçable -->
+		<Border x:Name="floatingPanel"
+				Width="140" Height="350"
+				BorderBrush="Black" BorderThickness="1"
+				Background="#CCFFFFFF">
 
-        <WrapPanel Grid.Row="1" Margin="2">
-          <!-- Transform icon button -->
-          <Button x:Name="transformButton"
-                  Width="28" Height="28"
-                  Background="Transparent" BorderBrush="Transparent"
-                  ToolTip.Tip="Transform (Ctrl+T)"
-                  Click="ToggleTransformButton_Click">
-              <Image x:Name="transformButtonIcon"
-                   Source="avares://AvaloniaMvvmDraw/Assets/transform_icon.png"
-                   Stretch="Uniform"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-          </Button>
+			<Border.RenderTransform>
+				<TranslateTransform X="-415" Y="40"/>
+			</Border.RenderTransform>
 
-          <!-- Existing move button -->
-          <Button x:Name="moveButton"
-                  Width="28" Height="28"
-                  Background="Transparent"
-                  BorderBrush="Transparent"
-                  Click="MoveButton_Click">
-            <Image x:Name="moveButtonIcon"
-                   Source="avares://AvaloniaMvvmDraw/Assets/move_icon.png"
-                   Stretch="Uniform"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-          </Button>
-        </WrapPanel>
-      </Grid>
-    </Border>
+			<Grid RowDefinitions="Auto,*">
+				<Border x:Name="floatingHeader"
+						Background="#FF2D2D2D" Height="28"
+						Cursor="SizeAll"
+						PointerPressed="FloatingHeader_PointerPressed"
+						PointerMoved="FloatingHeader_PointerMoved"
+						PointerReleased="FloatingHeader_PointerReleased"
+						PointerCaptureLost="FloatingHeader_PointerCaptureLost">
+					<TextBlock Margin="8,0"
+							   VerticalAlignment="Center"
+							   Foreground="White"
+							   Text="Tools"/>
+				</Border>
 
-    <!--         panneau flottant "Layers" -->
-    <Border x:Name="layerPanel"
-            Width="220" Height="300"
-            BorderBrush="Black" BorderThickness="1"
-            Background="#CCFFFFFF">
-      <Border.RenderTransform>
-        <!-- Position initiale pour ne pas recouvrir le panel Tools -->
-        <TranslateTransform X="260" Y="40"/>
-      </Border.RenderTransform>
+				<WrapPanel Grid.Row="1" Margin="2">
+					<!-- Transform icon button -->
+					<Button x:Name="transformButton"
+							Width="28" Height="28"
+							Background="Transparent" BorderBrush="Transparent"
+							ToolTip.Tip="Transform (Ctrl+T)"
+							Click="ToggleTransformButton_Click">
+						<Image x:Name="transformButtonIcon"
+							   Source="avares://AvaloniaMvvmDraw/Assets/transform_icon.png"
+							   Stretch="Uniform"
+							   HorizontalAlignment="Center"
+							   VerticalAlignment="Center"/>
+					</Button>
 
-      <Grid Name="layersGrid" RowDefinitions="Auto,Auto,*">
-        <Border x:Name="layerHeader"
-                Background="#FF2D2D2D" Height="28"
-                Cursor="SizeAll"
-                PointerPressed="LayerHeader_PointerPressed"
-                PointerMoved="LayerHeader_PointerMoved"
-                PointerReleased="LayerHeader_PointerReleased"
-                PointerCaptureLost="LayerHeader_PointerCaptureLost">
-          <TextBlock Margin="8,0"
-                     VerticalAlignment="Center"
-                     Foreground="White"
-                     Text="Layers"/>
-        </Border>
+					<!-- Existing move button -->
+					<Button x:Name="moveButton"
+							Width="28" Height="28"
+							Background="Transparent"
+							BorderBrush="Transparent"
+							Click="MoveButton_Click">
+						<Image x:Name="moveButtonIcon"
+							   Source="avares://AvaloniaMvvmDraw/Assets/move_icon.png"
+							   Stretch="Uniform"
+							   HorizontalAlignment="Center"
+							   VerticalAlignment="Center"/>
+					</Button>
+				</WrapPanel>
+			</Grid>
+		</Border>
 
-        <!-- Barre d'actions -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,4,8,0">
-          <Button x:Name="addLayerButton" Content="Ajouter" Margin="0,0,8,0" Click="AddLayerButton_Click"/>
-          <Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
-        </StackPanel>
+		<!-- Panneau flottant "Layers" -->
+		<Border x:Name="layerPanel"
+				Width="220" Height="300"
+				BorderBrush="Black" BorderThickness="1"
+				Background="#CCFFFFFF">
+			<Border.RenderTransform>
+				<!-- Position initiale pour ne pas recouvrir le panel Tools -->
+				<TranslateTransform X="260" Y="40"/>
+			</Border.RenderTransform>
 
-        <ListBox Grid.Row="2" Margin="8"
-                 x:Name="layersList"
-                 SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
-                 SelectionMode="Single"
-                 HorizontalAlignment="Stretch"
-                 MinWidth="160">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="intf:IDrawableLayer">
-              <Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
-                <DockPanel LastChildFill="True">
-                  <Image Width="40" Height="40"
-                         Margin="0,0,6,0"
-                         Stretch="UniformToFill"
-                         Source="{Binding Bitmap}"/>
-                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                </DockPanel>
-              </Border>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Grid>
-    </Border>
+			<Grid Name="layersGrid" RowDefinitions="Auto,Auto,*">
+				<Border x:Name="layerHeader"
+						Background="#FF2D2D2D" Height="28"
+						Cursor="SizeAll"
+						PointerPressed="LayerHeader_PointerPressed"
+						PointerMoved="LayerHeader_PointerMoved"
+						PointerReleased="LayerHeader_PointerReleased"
+						PointerCaptureLost="LayerHeader_PointerCaptureLost">
+					<TextBlock Margin="8,0"
+							   VerticalAlignment="Center"
+							   Foreground="White"
+							   Text="Layers"/>
+				</Border>
 
-    <!-- Nouveau panneau flottant "Overview" -->
-    <Border x:Name="overviewPanel"
-            Width="260" Height="260"
-            BorderBrush="Black" BorderThickness="1"
-            Background="#CCFFFFFF">
-      <Border.RenderTransform>
-        <TranslateTransform X="420" Y="40"/>
-      </Border.RenderTransform>
-      <Grid RowDefinitions="Auto,Auto,*">
-        <Border x:Name="overviewHeader"
-                Background="#FF2D2D2D" Height="28"
-                Cursor="SizeAll"
-                PointerPressed="OverviewHeader_PointerPressed"
-                PointerMoved="OverviewHeader_PointerMoved"
-                PointerReleased="OverviewHeader_PointerReleased"
-                PointerCaptureLost="OverviewHeader_PointerCaptureLost">
-          <TextBlock Margin="8,0" VerticalAlignment="Center" Foreground="White" Text="Overview"/>
-        </Border>
-        <!-- Controls moved here -->
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" Margin="8,4,8,4">
-          <Button x:Name="resetViewButton"
-                  Grid.Column="0"
-                  Content="Reset"
-                  Margin="0,0,8,0"
-                  VerticalAlignment="Center"
-                  Click="ResetViewButton_Click"/>
-          <TextBlock Grid.Column="1" Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <Slider x:Name="rotation"
-                  Grid.Column="2"
-                  Minimum="0" Maximum="360"
-                  TickFrequency="15"
-                  VerticalAlignment="Center"
-                  Value="{Binding Rotation, ElementName=drawingSurface, Mode=TwoWay}"/>
-        </Grid>
-        <Grid Grid.Row="2" Margin="8">
-          <Image x:Name="overviewImage" Stretch="Uniform"/>
-        </Grid>
-      </Grid>
-    </Border>
-  </Grid>
+				<!-- Barre d'actions -->
+				<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,4,8,0">
+					<Button x:Name="addLayerButton" Content="Ajouter" Margin="0,0,8,0" Click="AddLayerButton_Click"/>
+					<Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
+				</StackPanel>
+
+				<ListBox Grid.Row="2" Margin="8"
+						 x:Name="layersList"
+						 SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
+						 SelectionMode="Single"
+						 HorizontalAlignment="Stretch"
+						 MinWidth="160">
+					<ListBox.ItemTemplate>
+						<DataTemplate x:DataType="intf:IDrawableLayer">
+							<Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
+								<DockPanel LastChildFill="True">
+									<Image Width="40" Height="40"
+										   Margin="0,0,6,0"
+										   Stretch="UniformToFill"
+										   Source="{Binding Bitmap}"/>
+									<TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+								</DockPanel>
+							</Border>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+			</Grid>
+		</Border>
+
+		<!-- Nouveau panneau flottant "Overview" -->
+		<Border x:Name="overviewPanel"
+				Width="260" Height="260"
+				BorderBrush="Black" BorderThickness="1"
+				Background="#CCFFFFFF">
+			<Border.RenderTransform>
+				<TranslateTransform X="420" Y="40"/>
+			</Border.RenderTransform>
+			<Grid RowDefinitions="Auto,Auto,*">
+				<Border x:Name="overviewHeader"
+						Background="#FF2D2D2D" Height="28"
+						Cursor="SizeAll"
+						PointerPressed="OverviewHeader_PointerPressed"
+						PointerMoved="OverviewHeader_PointerMoved"
+						PointerReleased="OverviewHeader_PointerReleased"
+						PointerCaptureLost="OverviewHeader_PointerCaptureLost">
+					<TextBlock Margin="8,0" VerticalAlignment="Center" Foreground="White" Text="Overview"/>
+				</Border>
+				<!-- Controls moved here -->
+				<Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" Margin="8,4,8,4">
+					<Button x:Name="resetViewButton"
+							Grid.Column="0"
+							Content="Reset"
+							Margin="0,0,8,0"
+							VerticalAlignment="Center"
+							Click="ResetViewButton_Click"/>
+					<TextBlock Grid.Column="1" Text="Rotation" VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<Slider x:Name="rotation"
+							Grid.Column="2"
+							Minimum="0" Maximum="360"
+							TickFrequency="15"
+							VerticalAlignment="Center"
+							Value="{Binding Rotation, ElementName=drawingSurface, Mode=TwoWay}"/>
+				</Grid>
+				<Grid Grid.Row="2" Margin="8">
+					<Image x:Name="overviewImage" Stretch="Uniform"/>
+				</Grid>
+			</Grid>
+		</Border>
+	</Grid>
 </Window>

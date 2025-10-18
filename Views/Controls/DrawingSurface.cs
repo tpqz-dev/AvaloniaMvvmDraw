@@ -113,7 +113,7 @@ namespace AvaloniaMvvmDraw.Views
             Background = Brushes.Transparent;
             Focusable = true;
             Layers.CollectionChanged += Layers_CollectionChanged;
-            Layers.Insert(0, new RectangleLayer(new Rect(500, 200, 100, 100), Brushes.CornflowerBlue, new Pen(Brushes.Black, 1)));
+            // Layers.Insert(0, new RectangleLayer(new Rect(500, 200, 100, 100), Brushes.CornflowerBlue, new Pen(Brushes.Black, 1)));
 
             AddHandler(InputElement.PointerWheelChangedEvent,
                 (s, e) => OnPointerWheelChanged(e),

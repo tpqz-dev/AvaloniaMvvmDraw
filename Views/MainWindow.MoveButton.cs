@@ -29,7 +29,7 @@ namespace AvaloniaMvvmDraw.Views
             {
                 surface.CancelMoveMode();
             }
-            icon.Source = new Bitmap(AssetLoader.Open(new Uri(MoveIconUri)));
+          
         }
     }
 }

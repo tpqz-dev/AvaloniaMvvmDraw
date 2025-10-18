@@ -26,25 +26,14 @@ namespace AvaloniaMvvmDraw.Views
             var layers = drawingSurface.Layers;
             var sel = drawingSurface.SelectedDrawableLayer;
 
-            if (sel is null || layers.Count==1)
-                return;
 
             var idx = layers.IndexOf(sel);
             if (idx >= 0)
             {
-               
+                // Sélectionne le calque précédent si possible, sinon le premier
+                var prevIndex = System.Math.Max(0, idx - 1);
+                drawingSurface.SelectedDrawableLayer = layers[prevIndex];
 
-                if (layers.Count == 1)
-                {
-                    // Plus de calques
-                    drawingSurface.SelectedDrawableLayer = layers.First();
-                }
-                else
-                {
-                    // Sélectionne le calque précédent si possible, sinon le premier
-                    var prevIndex = System.Math.Max(0, idx - 1);
-                    drawingSurface.SelectedDrawableLayer = layers[prevIndex];
-                }
                 layers.RemoveAt(idx);
             }
         }
