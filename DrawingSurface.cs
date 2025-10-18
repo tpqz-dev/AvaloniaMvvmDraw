@@ -18,7 +18,7 @@ namespace AvaloniaMvvmDraw.Views
 
             var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Ouvrir une image",
+                Title = "Open an image",
                 AllowMultiple = false,
                 FileTypeFilter = new[]
                 {
@@ -34,18 +34,18 @@ namespace AvaloniaMvvmDraw.Views
             await using var stream = await files[0].OpenReadAsync();
             var bitmap = new Bitmap(stream);
 
-            // Positionne l'image à (100,100) avec sa taille d'origine
+            // Position the image at (100,100) with its original size
             var layer = new ImageLayer(bitmap)
             {
                 Rect = new Rect(100, 100, bitmap.Size.Width, bitmap.Size.Height)
             };
 
-            // Ajouter au-dessus: dessiné en dernier => au-dessus des anciens calques
+            // Add on top: drawn last => above older layers
             Layers.Add(layer);
             InvalidateVisual();
         }
 
-        // Permet de quitter le mode déplacement
+        // Exit move mode
         public void CancelMoveMode()
         {
             _isMovingLastLayer = false;

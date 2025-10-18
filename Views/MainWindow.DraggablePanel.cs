@@ -12,14 +12,14 @@ namespace AvaloniaMvvmDraw.Views
         private double _originX;
         private double _originY;
 
-        // Ajout de la déclaration de floatingTransform
+        // Added declaration of floatingTransform
         private TranslateTransform floatingTransform = new TranslateTransform();
 
         private void FloatingHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
-                // Synchronise le transform avec celui défini dans le XAML
+                // Sync transform with the one defined in XAML
                 var transform = floatingPanel.RenderTransform as TranslateTransform;
                 if (transform is null)
                 {
@@ -52,7 +52,7 @@ namespace AvaloniaMvvmDraw.Views
         {
             if (!_dragging) return;
             _dragging = false;
-            // Correction ici : utiliser e.Pointer.Capture(null) pour libérer la capture
+            // Fix: use e.Pointer.Capture(null) to release capture
             e.Pointer.Capture(null);
             e.Handled = true;
         }

@@ -14,7 +14,7 @@ namespace AvaloniaMvvmDraw.Views.Models
 
         public ImageLayer(Bitmap bitmap) => Bitmap = bitmap;
 
-        // DestRect de l'image
+        // Image destination rect
         public Rect Rect { get; set; }
         public string Name { get; set; } = "image_";
 
@@ -30,7 +30,7 @@ namespace AvaloniaMvvmDraw.Views.Models
                 context.DrawRectangle(null, BorderPen, Rect);
         }
 
-        // Dessine une miniature dans le coin haut-gauche du calque
+        // Draw a thumbnail in the top-left corner of the layer
         public void DrawThumbnailOverlay(DrawingContext context)
         {
             if (Bitmap is null) return;

@@ -6,10 +6,10 @@ namespace AvaloniaMvvmDraw.Views.Interfaces
 {
     public interface IDrawableLayer
     {
-        // Chaque calque connaît la taille de la surface (fenêtre)
+        // Each layer knows the size of the drawing surface (window)
         Size Size { get; set; }
         string Name { get; set; }
-        // Image associée (optionnelle) pour les calques pouvant afficher un bitmap
+        // Associated image (optional) for layers that can display a bitmap
         Bitmap? Bitmap { get; set; }
         void Draw(DrawingContext context);
     }

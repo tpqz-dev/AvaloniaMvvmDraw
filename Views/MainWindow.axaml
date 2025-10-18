@@ -21,7 +21,7 @@
 				</MenuItem>
 			</Menu>
 
-			<!-- Barre supérieure désormais vide (commandes déplacées dans Overview) -->
+			<!-- Top bar now empty (controls moved to Overview) -->
 			<Border DockPanel.Dock="Top" Height="32" Background="LightGray">
 				<Grid/>
 			</Border>
@@ -36,7 +36,7 @@
 			</Border>
 		</DockPanel>
 
-		<!-- Panneau Tools flottant déplaçable -->
+		<!-- Floating movable Tools panel -->
 		<Border x:Name="floatingPanel"
 				Width="140" Height="350"
 				BorderBrush="Black" BorderThickness="1"
@@ -90,13 +90,13 @@
 			</Grid>
 		</Border>
 
-		<!-- Panneau flottant "Layers" -->
+		<!-- Floating "Layers" panel -->
 		<Border x:Name="layerPanel"
 				Width="220" Height="300"
 				BorderBrush="Black" BorderThickness="1"
 				Background="#CCFFFFFF">
 			<Border.RenderTransform>
-				<!-- Position initiale pour ne pas recouvrir le panel Tools -->
+				<!-- Initial position to avoid overlapping the Tools panel -->
 				<TranslateTransform X="260" Y="40"/>
 			</Border.RenderTransform>
 
@@ -114,7 +114,7 @@
 							   Text="Layers"/>
 				</Border>
 
-				<!-- Barre d'actions -->
+				<!-- Actions bar -->
 				<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,4,8,0">
 					<Button x:Name="addLayerButton" Content="Ajouter" Margin="0,0,8,0" Click="AddLayerButton_Click"/>
 					<Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
@@ -143,7 +143,7 @@
 			</Grid>
 		</Border>
 
-		<!-- Nouveau panneau flottant "Overview" -->
+		<!-- New floating "Overview" panel -->
 		<Border x:Name="overviewPanel"
 				Width="260" Height="260"
 				BorderBrush="Black" BorderThickness="1"

@@ -16,7 +16,7 @@ namespace AvaloniaMvvmDraw.Views
 {
     public partial class DrawingSurface : Control
     {
-        // Conteneur global visible, 1500x500 à l’origine
+        // Global visible container, originally 1500x1000
         private Rect _globalContainerRect = new Rect(0, 0, 1500, 1000);
 
         private Matrix _transform = Matrix.Identity;
@@ -235,7 +235,7 @@ namespace AvaloniaMvvmDraw.Views
 
             using (context.PushTransform(rotAtCenter * _transform))
             {
-                // Background checker and slight tint
+                // Background checkerboard and slight tint
                 DrawCheckerboard(context, _globalContainerRect);
                 context.FillRectangle(new SolidColorBrush(Color.FromArgb(20, 30, 144, 255)), _globalContainerRect);
 
@@ -267,7 +267,7 @@ namespace AvaloniaMvvmDraw.Views
             DrawOverlay(context);
         }
 
-        // Damier limité à une zone
+        // Checkerboard limited to an area
         private void DrawCheckerboard(DrawingContext context, Rect area)
         {
             const int tile = 12;

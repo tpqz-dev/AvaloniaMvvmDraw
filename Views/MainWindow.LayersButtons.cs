@@ -11,7 +11,7 @@ namespace AvaloniaMvvmDraw.Views
     {
         private void AddLayerButton_Click(object? sender, RoutedEventArgs e)
         {
-            // Ajoute un nouveau calque rectangle et le sélectionne
+            // Add a new rectangle layer and select it
             var newLayer = new RectangleLayer(
                 new Rect(100, 100, 120, 80),
                 Brushes.LightGreen,
@@ -30,7 +30,7 @@ namespace AvaloniaMvvmDraw.Views
             var idx = layers.IndexOf(sel);
             if (idx >= 0)
             {
-                // Sélectionne le calque précédent si possible, sinon le premier
+                // Select previous layer if possible, otherwise the first
                 var prevIndex = System.Math.Max(0, idx - 1);
                 drawingSurface.SelectedDrawableLayer = layers[prevIndex];
 
@@ -38,7 +38,7 @@ namespace AvaloniaMvvmDraw.Views
             }
         }
 
-        // Bouton: sélectionner le calque précédent
+        // Button: select previous layer
         private void PreviousLayerButton_Click(object? sender, RoutedEventArgs e)
         {
             var layers = drawingSurface.Layers;
@@ -49,7 +49,7 @@ namespace AvaloniaMvvmDraw.Views
             var index = layers.IndexOf(current);
             if (index > 0)
                 drawingSurface.SelectedDrawableLayer = layers[index - 1];
-            // Si déjà au premier, on ne change rien
+            // If already at the first one, do nothing
         }
     }
 }
