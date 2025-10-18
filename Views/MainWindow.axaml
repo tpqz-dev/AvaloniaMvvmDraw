@@ -56,34 +56,18 @@
                      Text="Tools"/>
         </Border>
 
-        <StackPanel Grid.Row="1" Margin="8" Spacing="6">
+        <WrapPanel Grid.Row="1" Margin="2">
           <!-- Transform icon button -->
           <Button x:Name="transformButton"
                   Width="28" Height="28"
                   Background="Transparent" BorderBrush="Transparent"
                   ToolTip.Tip="Transform (Ctrl+T)"
                   Click="ToggleTransformButton_Click">
-            <Viewbox Stretch="Uniform">
-              <Canvas Width="24" Height="24">
-                <!-- bounding box -->
-                <Rectangle Width="12" Height="12" Stroke="#666" StrokeThickness="1" Canvas.Left="6" Canvas.Top="6"/>
-                <!-- edge handles (squares) -->
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="9.5" Canvas.Top="4.5"/>
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="16.5" Canvas.Top="9.5"/>
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="9.5" Canvas.Top="16.5"/>
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="4.5" Canvas.Top="9.5"/>
-                <!-- corner handles (squares) -->
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="4.5" Canvas.Top="4.5"/>
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="16.5" Canvas.Top="4.5"/>
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="16.5" Canvas.Top="16.5"/>
-                <Rectangle Width="3" Height="3" Fill="#1E90FF" Canvas.Left="4.5" Canvas.Top="16.5"/>
-                <!-- rotation handles (circles) offset outward -->
-                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="1.5" Canvas.Top="1.5"/>
-                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="18.5" Canvas.Top="1.5"/>
-                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="18.5" Canvas.Top="18.5"/>
-                <Ellipse Width="4" Height="4" Fill="#FF7A00" Canvas.Left="1.5" Canvas.Top="18.5"/>
-              </Canvas>
-            </Viewbox>
+              <Image x:Name="transformButtonIcon"
+                   Source="avares://AvaloniaMvvmDraw/Assets/transform_icon.png"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
           </Button>
 
           <!-- Existing move button -->
@@ -98,7 +82,7 @@
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"/>
           </Button>
-        </StackPanel>
+        </WrapPanel>
       </Grid>
     </Border>
 
@@ -112,7 +96,6 @@
         <TranslateTransform X="260" Y="40"/>
       </Border.RenderTransform>
 
-      <!-- Host grid for list and overlay -->
       <Grid Name="layersGrid" RowDefinitions="Auto,Auto,*">
         <Border x:Name="layerHeader"
                 Background="#FF2D2D2D" Height="28"
@@ -133,36 +116,26 @@
           <Button x:Name="removeLayerButton" Content="Supprimer" Click="RemoveLayerButton_Click"/>
         </StackPanel>
 
-        <!-- Overlay grid to host list and drop indicator line -->
-        <Grid Grid.Row="2" Margin="8" x:Name="layersListHost">
-          <ListBox
+        <ListBox Grid.Row="2" Margin="8"
                  x:Name="layersList"
                  SelectedItem="{Binding ElementName=drawingSurface, Path=SelectedDrawableLayer, Mode=TwoWay}"
                  SelectionMode="Single"
                  HorizontalAlignment="Stretch"
                  MinWidth="160">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="intf:IDrawableLayer">
-                <Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
-                  <DockPanel LastChildFill="True">
-                    <Image Width="40" Height="40"
-                           Margin="0,0,6,0"
-                           Stretch="UniformToFill"
-                           Source="{Binding Bitmap}"/>
-                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
-                  </DockPanel>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-          <!-- Drop indicator line -->
-          <Border x:Name="dropIndicator"
-                  IsVisible="False"
-                  Height="2"
-                  Background="#FF1E90FF"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Top"/>
-        </Grid>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="intf:IDrawableLayer">
+              <Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
+                <DockPanel LastChildFill="True">
+                  <Image Width="40" Height="40"
+                         Margin="0,0,6,0"
+                         Stretch="UniformToFill"
+                         Source="{Binding Bitmap}"/>
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
       </Grid>
     </Border>
 
