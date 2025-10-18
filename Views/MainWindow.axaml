@@ -128,10 +128,10 @@
 						 MinWidth="160">
 					<ListBox.ItemTemplate>
 						<DataTemplate x:DataType="intf:IDrawableLayer">
-							<Border BorderBrush="#808080" BorderThickness="1" Margin="0,2,0,2" Padding="4">
+							<Border BorderBrush="#808080" Height="32" BorderThickness="1" Margin="0,1,0,1" Padding="1">
 								<DockPanel LastChildFill="True">
-									<Image Width="40" Height="40"
-										   Margin="0,0,6,0"
+									<Image Width="30" Height="30"
+										   Margin="0,0,1,0"
 										   Stretch="UniformToFill"
 										   Source="{Binding Bitmap}"/>
 									<TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
@@ -143,7 +143,7 @@
 			</Grid>
 		</Border>
 
-		<!-- New floating "Overview" panel -->
+		<!--  Floating "Overview" panel -->
 		<Border x:Name="overviewPanel"
 				Width="260" Height="260"
 				BorderBrush="Black" BorderThickness="1"
