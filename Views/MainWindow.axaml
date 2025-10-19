@@ -126,17 +126,29 @@
 						 SelectionMode="Single"
 						 HorizontalAlignment="Stretch"
 						 MinWidth="160">
+					<!-- Remove item padding/margin from containers -->
+					<ListBox.Styles>
+						<Style Selector="ListBoxItem">
+							<Setter Property="Padding" Value="0"/>
+							<Setter Property="Margin" Value="0"/>
+						</Style>
+					</ListBox.Styles>
 					<ListBox.ItemTemplate>
 						<DataTemplate x:DataType="intf:IDrawableLayer">
-							<Border BorderBrush="#808080" Height="32" BorderThickness="1" Margin="0,1,0,1" Padding="1">
-								<DockPanel LastChildFill="True">
-									<Image Width="30" Height="30"
-										   Margin="0,0,1,0"
-										   Stretch="UniformToFill"
-										   Source="{Binding Bitmap}"/>
-									<TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
-								</DockPanel>
-							</Border>
+							<Grid Margin="0">
+								<!-- Red zones (3px) above and below each item -->
+								<Rectangle Height="3" Fill="#FFFF0000" HorizontalAlignment="Stretch" VerticalAlignment="Top"/>
+								<Border BorderBrush="#808080" Height="32" BorderThickness="1" Margin="0" Padding="0">
+									<DockPanel LastChildFill="True">
+										<Image Width="30" Height="30"
+											   Margin="0"
+											   Stretch="UniformToFill"
+											   Source="{Binding Bitmap}"/>
+										<TextBlock Text="{Binding Name}" VerticalAlignment="Center" IsHitTestVisible="False"/>
+									</DockPanel>
+								</Border>
+								<Rectangle Height="3" Fill="#FFFF0000" HorizontalAlignment="Stretch" VerticalAlignment="Bottom"/>
+							</Grid>
 						</DataTemplate>
 					</ListBox.ItemTemplate>
 				</ListBox>
