@@ -35,6 +35,41 @@ namespace AvaloniaMvvmDraw.Views
             DragDrop.SetAllowDrop(layersList, true);
         }
 
+        private void ResetLayerRotation_Click(object? sender, RoutedEventArgs e)
+        {
+            if (drawingSurface?.SelectedDrawableLayer is Views.Models.ImageLayer img)
+            {
+                img.Rotation = 0.0;
+                Log.Information("Reset rotation for layer {Name}", img.Name);
+                drawingSurface.InvalidateVisual();
+                UpdateOverviewSnapshot();
+            }
+        }
+
+        private void ResetLayerWidth_Click(object? sender, RoutedEventArgs e)
+        {
+            if (drawingSurface?.SelectedDrawableLayer is Views.Models.ImageLayer img && img.Bitmap is not null)
+            {
+                var old = img.Rect;
+                img.Rect = new Rect(old.X, old.Y, img.ImageWidth, old.Height);
+                Log.Information("Reset width for layer {Name} to {W}", img.Name, img.ImageWidth);
+                drawingSurface.InvalidateVisual();
+                UpdateOverviewSnapshot();
+            }
+        }
+
+        private void ResetLayerHeight_Click(object? sender, RoutedEventArgs e)
+        {
+            if (drawingSurface?.SelectedDrawableLayer is Views.Models.ImageLayer img && img.Bitmap is not null)
+            {
+                var old = img.Rect;
+                img.Rect = new Rect(old.X, old.Y, old.Width, img.ImageHeight);
+                Log.Information("Reset height for layer {Name} to {H}", img.Name, img.ImageHeight);
+                drawingSurface.InvalidateVisual();
+                UpdateOverviewSnapshot();
+            }
+        }
+
         private bool _overviewDragging;
         private Point _overviewStart;
         private Vector _overviewOffset;

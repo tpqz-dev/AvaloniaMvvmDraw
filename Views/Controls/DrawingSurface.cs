@@ -482,6 +482,70 @@ namespace AvaloniaMvvmDraw.Views
             base.OnPointerPressed(e);
             var point = e.GetCurrentPoint(this);
 
+            // Right-click: show context menu for image layer under cursor
+            if (point.Properties.IsRightButtonPressed)
+            {
+                var world = ScreenToWorld(point.Position);
+                for (int i = Layers.Count - 1; i >= 0; i--)
+                {
+                    if (Layers[i] is IMovableRectLayer rectLayer && rectLayer.Rect.Contains(world))
+                    {
+                        // Select this layer
+                        SelectedDrawableLayer = Layers[i];
+
+                        // Build context menu
+                        var cm = new ContextMenu();
+                        var miRot = new MenuItem { Header = "Reset Rotation" };
+                        var miW = new MenuItem { Header = "Reset Width" };
+                        var miH = new MenuItem { Header = "Reset Height" };
+
+                        miRot.Click += (_, __) =>
+                        {
+                            if (SelectedDrawableLayer is Views.Models.ImageLayer img)
+                            {
+                                img.Rotation = 0.0;
+                                _layerAngles[SelectedDrawableLayer] = 0.0;
+                                InvalidateVisual();
+                            }
+                        };
+                        miW.Click += (_, __) =>
+                        {
+                            if (SelectedDrawableLayer is Views.Models.ImageLayer img)
+                            {
+                                var old = img.Rect;
+                                img.Rect = new Rect(old.X, old.Y, img.ImageWidth, old.Height);
+                                InvalidateVisual();
+                            }
+                        };
+                        miH.Click += (_, __) =>
+                        {
+                            if (SelectedDrawableLayer is Views.Models.ImageLayer img)
+                            {
+                                var old = img.Rect;
+                                img.Rect = new Rect(old.X, old.Y, old.Width, img.ImageHeight);
+                                InvalidateVisual();
+                            }
+                        };
+
+                        cm.Items.Add(  miRot);
+                        cm.Items.Add(  miW);
+                        cm.Items.Add(  miH );
+                        // Open at pointer
+                        try
+                        {
+                            cm.Open(this);
+                        }
+                        catch
+                        {
+                            // ignore if open unsupported on platform
+                        }
+
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
             if (_isTransformMode && SelectedDrawableLayer is IMovableRectLayer sel && point.Properties.IsLeftButtonPressed)
             {
                 var handle = HitTestHandle(sel, point.Position);

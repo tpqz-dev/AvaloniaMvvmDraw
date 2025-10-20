@@ -10,9 +10,27 @@ namespace AvaloniaMvvmDraw.Views.Models
         public Size Size { get; set; }
         public IPen? BorderPen { get; set; }
 
+        // Original bitmap and metadata
         public Bitmap? Bitmap { get; set; }
 
-        public ImageLayer(Bitmap bitmap) => Bitmap = bitmap;
+        // Basic image info requested: path, filename, original dimensions
+        public string FilePath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public double ImageWidth { get; set; }
+        public double ImageHeight { get; set; }
+
+        // Per-layer rotation (degrees)
+        public double Rotation { get; set; }
+
+        public ImageLayer(Bitmap bitmap, string? fileName = null, string? filePath = null)
+        {
+            Bitmap = bitmap;
+            ImageWidth = bitmap.Size.Width;
+            ImageHeight = bitmap.Size.Height;
+            FileName = fileName ?? string.Empty;
+            FilePath = filePath ?? string.Empty;
+            Rotation = 0.0;
+        }
 
         // Image destination rect
         public Rect Rect { get; set; }
