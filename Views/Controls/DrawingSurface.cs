@@ -4,7 +4,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using AvaloniaMvvmDraw.Views.Interfaces;
-using AvaloniaMvvmDraw.Views.Models;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -527,9 +526,9 @@ namespace AvaloniaMvvmDraw.Views
                             }
                         };
 
-                        cm.Items.Add(  miRot);
-                        cm.Items.Add(  miW);
-                        cm.Items.Add(  miH );
+                        cm.Items.Add(miRot);
+                        cm.Items.Add(miW);
+                        cm.Items.Add(miH);
                         // Open at pointer
                         try
                         {
@@ -741,62 +740,62 @@ namespace AvaloniaMvvmDraw.Views
                     {
                         case Handle.ResizeLeft:
                         case Handle.ResizeRight:
-                        {
-                            double targetHW = Math.Max(minHalf, Math.Abs(lx));
-                            if (shift)
                             {
-                                double s = targetHW / hw0;
-                                hw = Math.Max(minHalf, hw0 * s);
-                                hh = Math.Max(minHalf, hh0 * s);
+                                double targetHW = Math.Max(minHalf, Math.Abs(lx));
+                                if (shift)
+                                {
+                                    double s = targetHW / hw0;
+                                    hw = Math.Max(minHalf, hw0 * s);
+                                    hh = Math.Max(minHalf, hh0 * s);
+                                }
+                                else
+                                {
+                                    hw = targetHW;
+                                    hh = hh0;
+                                }
+                                break;
                             }
-                            else
-                            {
-                                hw = targetHW;
-                                hh = hh0;
-                            }
-                            break;
-                        }
                         case Handle.ResizeTop:
                         case Handle.ResizeBottom:
-                        {
-                            double targetHH = Math.Max(minHalf, Math.Abs(ly));
-                            if (shift)
                             {
-                                double s = targetHH / hh0;
-                                hw = Math.Max(minHalf, hw0 * s);
-                                hh = Math.Max(minHalf, hh0 * s);
+                                double targetHH = Math.Max(minHalf, Math.Abs(ly));
+                                if (shift)
+                                {
+                                    double s = targetHH / hh0;
+                                    hw = Math.Max(minHalf, hw0 * s);
+                                    hh = Math.Max(minHalf, hh0 * s);
+                                }
+                                else
+                                {
+                                    hw = hw0;
+                                    hh = targetHH;
+                                }
+                                break;
                             }
-                            else
-                            {
-                                hw = hw0;
-                                hh = targetHH;
-                            }
-                            break;
-                        }
                         case Handle.ResizeTL:
                         case Handle.ResizeTR:
                         case Handle.ResizeBR:
                         case Handle.ResizeBL:
-                        {
-                            double targetHW = Math.Max(minHalf, Math.Abs(lx));
-                            double targetHH = Math.Max(minHalf, Math.Abs(ly));
-                            if (shift)
                             {
-                                // proportional scaling around center; choose min when shrinking, max when enlarging
-                                double sx = targetHW / hw0;
-                                double sy = targetHH / hh0;
-                                bool shrinking = sx <= 1 && sy <= 1;
-                                double s = shrinking ? Math.Min(sx, sy) : Math.Max(sx, sy);
-                                hw = Math.Max(minHalf, hw0 * s);
-                                hh = Math.Max(minHalf, hh0 * s);
+                                double targetHW = Math.Max(minHalf, Math.Abs(lx));
+                                double targetHH = Math.Max(minHalf, Math.Abs(ly));
+                                if (shift)
+                                {
+                                    // proportional scaling around center; choose min when shrinking, max when enlarging
+                                    double sx = targetHW / hw0;
+                                    double sy = targetHH / hh0;
+                                    bool shrinking = sx <= 1 && sy <= 1;
+                                    double s = shrinking ? Math.Min(sx, sy) : Math.Max(sx, sy);
+                                    hw = Math.Max(minHalf, hw0 * s);
+                                    hh = Math.Max(minHalf, hh0 * s);
+                                }
+                                else
+                                {
+                                    hw = targetHW;
+                                    hh = targetHH;
+                                }
+                                break;
                             }
-                            else
-                            {
-                                hw = targetHW;
-                                hh = targetHH;
-                            }
-                            break;
-                        }
                     }
 
                     // Rebuild rect centered on center with new half sizes
