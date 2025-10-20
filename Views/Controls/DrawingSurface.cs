@@ -497,6 +497,7 @@ namespace AvaloniaMvvmDraw.Views
                         var miRot = new MenuItem { Header = "Reset Rotation" };
                         var miW = new MenuItem { Header = "Reset Width" };
                         var miH = new MenuItem { Header = "Reset Height" };
+                        var miResizeAspectMax = new MenuItem { Header = "Resize to saved aspect (current max side)" };
 
                         miRot.Click += (_, __) =>
                         {
@@ -525,10 +526,38 @@ namespace AvaloniaMvvmDraw.Views
                                 InvalidateVisual();
                             }
                         };
+                        miResizeAspectMax.Click += (_, __) =>
+                        {
+                            if (SelectedDrawableLayer is IMovableRectLayer m && SelectedDrawableLayer is Models.ImageLayer img && img.OriginalAspectRatio > 0)
+                            {
+                                var rc = m.Rect;
+                                var center = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
+                                var currentMax = Math.Max(rc.Width, rc.Height);
+
+                                double newW, newH;
+                                if (img.OriginalAspectRatio >= 1.0)
+                                {
+                                    // Landscape or square: width = currentMax
+                                    newW = currentMax;
+                                    newH = newW / img.OriginalAspectRatio;
+                                }
+                                else
+                                {
+                                    // Portrait: height = currentMax
+                                    newH = currentMax;
+                                    newW = newH * img.OriginalAspectRatio;
+                                }
+
+                                m.Rect = new Rect(center.X - newW / 2, center.Y - newH / 2, newW, newH);
+                                Log.Information("Context: resize to saved aspect by current max side: {W}x{H} (ratio {R:0.###}, currentMax {M})", newW, newH, img.OriginalAspectRatio, currentMax);
+                                InvalidateVisual();
+                            }
+                        };
 
                         cm.Items.Add(miRot);
                         cm.Items.Add(miW);
                         cm.Items.Add(miH);
+                        cm.Items.Add(miResizeAspectMax);
                         // Open at pointer
                         try
                         {

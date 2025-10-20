@@ -131,6 +131,7 @@
 						<MenuItem Header="Reset Rotation" Click="ResetLayerRotation_Click"/>
 						<MenuItem Header="Reset Width" Click="ResetLayerWidth_Click"/>
 						<MenuItem Header="Reset Height" Click="ResetLayerHeight_Click"/>
+						<MenuItem Header="Resize to saved aspect (current max side)" Click="ResizeToAspectCurrentMaxSide_Click"/>
 					</ContextMenu>
 				</ListBox.ContextMenu>
 					<!-- Remove item padding/margin from containers -->

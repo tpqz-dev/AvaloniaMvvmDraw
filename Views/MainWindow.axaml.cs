@@ -8,6 +8,8 @@ using Avalonia.Threading;
 using System;
 using System.Linq;
 using Serilog;
+using AvaloniaMvvmDraw.Views.Models;
+using AvaloniaMvvmDraw.Views.Interfaces;
 
 namespace AvaloniaMvvmDraw.Views
 {
@@ -183,6 +185,37 @@ namespace AvaloniaMvvmDraw.Views
             {
                 Log.Debug(ex, "Failed to snapshot DrawingSurface for Overview");
             }
+        }
+
+        private void ResizeToAspectCurrentMaxSide_Click(object? sender, RoutedEventArgs e)
+        {
+            if (drawingSurface.SelectedDrawableLayer is not IMovableRectLayer m)
+                return;
+            if (drawingSurface.SelectedDrawableLayer is not ImageLayer img || img.OriginalAspectRatio <= 0)
+                return;
+
+            var rc = m.Rect;
+            var center = new Point(rc.X + rc.Width / 2, rc.Y + rc.Height / 2);
+            var currentMax = Math.Max(rc.Width, rc.Height);
+
+            double newW, newH;
+            if (img.OriginalAspectRatio >= 1.0)
+            {
+                // Landscape or square: width = currentMax
+                newW = currentMax;
+                newH = newW / img.OriginalAspectRatio;
+            }
+            else
+            {
+                // Portrait: height = currentMax
+                newH = currentMax;
+                newW = newH * img.OriginalAspectRatio;
+            }
+
+            m.Rect = new Rect(center.X - newW / 2, center.Y - newH / 2, newW, newH);
+            Log.Information("Resize to saved aspect by current max side: {W}x{H} (ratio {R:0.###}, currentMax {M})", newW, newH, img.OriginalAspectRatio, currentMax);
+            drawingSurface.InvalidateVisual();
+            UpdateOverviewSnapshot();
         }
     }
 }

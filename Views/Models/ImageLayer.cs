@@ -18,6 +18,7 @@ namespace AvaloniaMvvmDraw.Views.Models
         public string FileName { get; set; } = string.Empty;
         public double ImageWidth { get; set; }
         public double ImageHeight { get; set; }
+        public double OriginalAspectRatio { get; set; }
 
         // Per-layer rotation (degrees)
         public double Rotation { get; set; }
@@ -27,6 +28,8 @@ namespace AvaloniaMvvmDraw.Views.Models
             Bitmap = bitmap;
             ImageWidth = bitmap.Size.Width;
             ImageHeight = bitmap.Size.Height;
+            // Store original aspect ratio (w/h) for later use
+            OriginalAspectRatio = ImageHeight != 0 ? ImageWidth / ImageHeight : 0.0;
             FileName = fileName ?? string.Empty;
             FilePath = filePath ?? string.Empty;
             Rotation = 0.0;
